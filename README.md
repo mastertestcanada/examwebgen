@@ -1,6 +1,6 @@
 # Exam Generator for the browser
 
-Version 0.3.6 of [Exam Generator](https://github.com/mastertestcanada/examgenerator),
+Version 0.3.7 of [Exam Generator](https://github.com/mastertestcanada/examgenerator),
 built to run entirely in a web browser. Teachers choose a Canvas quiz export (and a
 class list), set the options, and download a zip of exams, answer cards, the
 answer key and attendance sheet for marking with ExamMaster.
