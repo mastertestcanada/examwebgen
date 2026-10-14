@@ -1,0 +1,18 @@
+{
+ "version": "0.3.6",
+ "pyodide": "pyodide/",
+ "pyodide_version": "0.29.5",
+ "packages": [
+  "lxml",
+  "pillow",
+  "cryptography",
+  "fonttools",
+  "charset-normalizer"
+ ],
+ "wheels": [
+  "pypdf-6.20.1-py3-none-any.whl",
+  "reportlab-5.0.1-py3-none-any.whl",
+  "segno-1.6.6-py3-none-any.whl"
+ ],
+ "app": "app-0.3.6.zip"
+}

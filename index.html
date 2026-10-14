@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam Generator</title>
+<meta name="description" content="Make printable exams and answer cards from a Canvas quiz export, entirely in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%23000'/%3E%3C/svg%3E">
+<style>
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap;
+  src: url("fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-display: swap;
+  src: url("fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  --paper: #ffffff;
+  --ink: #000000;
+  --cell: #d9d9d9;          /* the 15% grey of the answer cells */
+  --cell-focus: #c4c4c4;
+  --muted: #5a6b80;         /* ExamMaster secondary */
+  --rule: #b8c0ca;
+  --accent: #0b74f2;        /* ExamMaster primary */
+  --accent-ink: #ffffff;
+  --wrong: #c62828;
+  --right: #1b7a3a;
+  --mark: 14px;             /* corner registration squares */
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15191e; --ink: #f2f4f7; --cell: #2b323b; --cell-focus: #36404b;
+    --muted: #9aa8b8; --rule: #3a434e; --accent: #4c9bff; --accent-ink: #00152e;
+    --wrong: #ff7b72; --right: #5fd38a;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #15191e; --ink: #f2f4f7; --cell: #2b323b; --cell-focus: #36404b;
+  --muted: #9aa8b8; --rule: #3a434e; --accent: #4c9bff; --accent-ink: #00152e;
+  --wrong: #ff7b72; --right: #5fd38a;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); }
+
+/* The page is laid out like an answer card: four black squares mark its corners. */
+.sheet { position: relative; max-width: 54rem; margin: 0 auto; padding: 3.5rem 3.25rem 4rem; }
+.sheet::before, .sheet::after, .sheet > .marks::before, .sheet > .marks::after {
+  content: ""; position: absolute; width: var(--mark); height: var(--mark); background: var(--ink);
+}
+.sheet::before { top: 1.25rem; left: 1.25rem; }
+.sheet::after { top: 1.25rem; right: 1.25rem; }
+.sheet > .marks::before { bottom: 1.25rem; left: 1.25rem; }
+.sheet > .marks::after { bottom: 1.25rem; right: 1.25rem; }
+
+header { display: grid; grid-template-columns: 1fr auto; gap: 1rem 2rem; align-items: end;
+  border-bottom: 1px solid var(--rule); padding-bottom: 1.25rem; }
+h1 { font-size: 2.25rem; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
+.lede { margin: .5rem 0 0; max-width: 36rem; color: var(--muted); }
+.engine { font-size: .875rem; color: var(--muted); text-align: right; min-width: 11rem; }
+.engine strong { display: block; color: var(--ink); font-size: 1rem; }
+
+section.step { display: grid; grid-template-columns: 2.25rem 1fr; gap: 0 1rem; padding: 1.75rem 0 .25rem; }
+.num { width: 2rem; height: 2rem; border-radius: 50%; border: 1.5px solid var(--ink);
+  display: grid; place-items: center; font-weight: 700; font-size: .95rem; }
+section.step.done .num { background: var(--ink); color: var(--paper); }
+h2 { font-size: 1.25rem; margin: .15rem 0 .25rem; }
+.hint { color: var(--muted); font-size: .9rem; margin: 0 0 .75rem; max-width: 40rem; }
+
+label.field { display: block; margin: .9rem 0 0; }
+label.field > span.name { display: block; font-weight: 700; font-size: .95rem; }
+label.field > span.help, .opt .help { display: block; color: var(--muted); font-size: .85rem; margin: .1rem 0 .35rem; max-width: 40rem; }
+
+/* inputs are shaded cells, as on the card */
+input[type=text], input[type=number], input[type=password], select, textarea {
+  font: inherit; color: var(--ink); background: var(--cell); border: 0; border-radius: 0;
+  padding: .45rem .6rem; min-height: 2.4rem; width: 100%; max-width: 26rem;
+}
+input[type=number] { max-width: 9rem; }
+textarea { max-width: 100%; min-height: 6rem; font-size: .9rem; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--cell-focus); }
+
+/* file pickers */
+.file { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.file input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file .pick { font: inherit; font-weight: 700; padding: .45rem 1rem; background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--ink); cursor: pointer; }
+.file input[type=file]:focus-visible + .pick { outline: 2px solid var(--accent); outline-offset: 2px; }
+.file .chosen { color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
+.file .clear { font: inherit; font-size: .85rem; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+
+/* switches drawn as answer bubbles */
+.bubble { display: flex; gap: .65rem; align-items: flex-start; margin: .9rem 0 0; cursor: pointer; }
+.bubble input { appearance: none; -webkit-appearance: none; flex: none; width: 1.25rem; height: 1.25rem; margin: .15rem 0 0;
+  border: 1.5px solid var(--ink); border-radius: 50%; background: var(--paper); cursor: pointer; }
+.bubble input:checked { background: var(--ink); box-shadow: inset 0 0 0 2px var(--paper); }
+.bubble input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bubble .name { font-weight: 700; font-size: .95rem; display: block; }
+.choices { display: flex; flex-wrap: wrap; gap: .25rem 1.5rem; }
+.choices .bubble { margin-top: .4rem; align-items: center; }
+.choices .bubble input { margin: 0; }
+
+details.group { border-top: 1px solid var(--rule); padding: .35rem 0 .9rem; }
+details.group:last-of-type { border-bottom: 1px solid var(--rule); }
+details.group > summary { cursor: pointer; font-weight: 700; padding: .5rem 0; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+details.group > summary::-webkit-details-marker { display: none; }
+details.group > summary::after { content: "+"; font-weight: 400; color: var(--muted); }
+details.group[open] > summary::after { content: "–"; }
+details.group > summary .count { color: var(--accent); font-weight: 400; font-size: .9rem; margin-left: auto; }
+.opt-name { color: var(--muted); font-weight: 400; font-size: .85rem; margin-left: .4rem; white-space: nowrap; }
+
+.row { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center; margin-top: 1rem; }
+button.primary { font: inherit; font-weight: 700; font-size: 1.05rem; padding: .7rem 1.6rem; border: 0;
+  background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+button.primary:disabled { background: var(--cell); color: var(--muted); cursor: default; }
+button.secondary { font: inherit; padding: .45rem 1rem; background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a.download { font-weight: 700; color: var(--accent); }
+
+#result { margin-top: 1rem; font-weight: 700; }
+#result.ok { color: var(--right); }
+#result.bad { color: var(--wrong); }
+pre#log { background: var(--cell); padding: .75rem 1rem; font-size: .8rem; line-height: 1.45; white-space: pre-wrap;
+  overflow-wrap: anywhere; max-height: 22rem; overflow: auto; margin: .75rem 0 0; }
+pre#log:empty { display: none; }
+pre#log .err { color: var(--wrong); }
+
+footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .85rem; }
+footer p { margin: .25rem 0; max-width: 44rem; }
+
+@media (max-width: 640px) {
+  .sheet { padding: 3rem 1rem 3.5rem; }
+  .sheet::before, .sheet::after, .sheet > .marks::before, .sheet > .marks::after { --mark: 10px; }
+  .sheet::before, .sheet > .marks::before { left: .5rem; }
+  .sheet::after, .sheet > .marks::after { right: .5rem; }
+  .sheet::before, .sheet::after { top: .5rem; }
+  .sheet > .marks::before, .sheet > .marks::after { bottom: .5rem; }
+  header { grid-template-columns: 1fr; }
+  .engine { text-align: left; }
+  h1 { font-size: 1.85rem; }
+  section.step { grid-template-columns: 1fr; }
+  .num { margin-bottom: .5rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <div class="marks" aria-hidden="true"></div>
+  <header>
+    <div>
+      <h1>Exam Generator</h1>
+      <p class="lede">Turn a Canvas quiz export into printable exams, answer cards and an answer key for ExamMaster. Everything runs in this browser tab: your quiz and class list are never uploaded.</p>
+    </div>
+    <div class="engine" role="status" aria-live="polite">
+      <strong id="engine-state">Starting…</strong>
+      <span id="engine-detail">The first visit downloads about 25 MB.</span>
+    </div>
+  </header>
+
+  <section class="step" id="step-export">
+    <div class="num" aria-hidden="true">1</div>
+    <div>
+      <h2>Quiz export</h2>
+      <p class="hint">In Canvas, export the quiz as a QTI .zip file and choose it here.</p>
+      <div class="file">
+        <input type="file" id="export" accept=".zip,application/zip">
+        <label class="pick" for="export">Choose export</label>
+        <span class="chosen" id="export-name">No file chosen</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-students">
+    <div class="num" aria-hidden="true">2</div>
+    <div>
+      <h2>Students</h2>
+      <p class="hint">A class list makes one named exam and card per student. Blank cards let students write their own number. You need at least one of the two.</p>
+      <div id="students"></div>
+    </div>
+  </section>
+
+  <section class="step" id="step-options">
+    <div class="num" aria-hidden="true">3</div>
+    <div>
+      <h2>Options</h2>
+      <p class="hint">Everything is optional. Each setting matches a command-line option of the desktop program, shown beside its name.</p>
+      <div id="groups"></div>
+      <label class="field">
+        <span class="name">Other files</span>
+        <span class="help">Images for your answer-card instructions, a font file, or anything else an option names. Refer to them by file name.</span>
+        <span class="file">
+          <input type="file" id="extra-files" multiple>
+          <label class="pick" for="extra-files">Add files</label>
+          <span class="chosen" id="extra-files-name">None</span>
+        </span>
+      </label>
+      <div class="row">
+        <button type="button" class="secondary" id="save-options">Save options</button>
+        <span class="file">
+          <input type="file" id="load-options" accept=".txt,text/plain">
+          <label class="pick" for="load-options">Load options</label>
+        </span>
+      </div>
+      <p class="hint" style="margin-top:.5rem">Saved options are a text file you keep; this page stores nothing. The file also works with the desktop program as <code>@options.txt</code>.</p>
+    </div>
+  </section>
+
+  <section class="step" id="step-make">
+    <div class="num" aria-hidden="true">4</div>
+    <div>
+      <h2>Make the exam files</h2>
+      <div id="password-box"></div>
+      <div class="row">
+        <button type="button" class="primary" id="make" disabled>Make exam files</button>
+        <a class="download" id="download" hidden>Download</a>
+      </div>
+      <p id="result" role="status" aria-live="polite"></p>
+      <pre id="log" aria-label="Messages from Exam Generator"></pre>
+    </div>
+  </section>
+
+  <footer>
+    <p id="version-line">Exam Generator</p>
+    <p>Files you choose stay in this tab's memory and are cleared after each run and when the tab closes. Nothing is stored on this computer or sent to a server.</p>
+  </footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
