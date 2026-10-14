@@ -1,4 +1,4 @@
-// Master Test Web, MasterTest Generator in the browser: builds the form from the program's own option list, sends the
+// MasterTest Web, MasterTest Generator in the browser: builds the form from the program's own option list, sends the
 // chosen files to the worker (which runs the Python program in memory) and offers the result.
 "use strict";
 
@@ -21,7 +21,7 @@ worker.onmessage = ({ data }) => {
     ready = true;
     $("engine-state").textContent = "Ready";
     $("engine-detail").textContent = `Loaded in ${data.seconds.toFixed(0)} s`;
-    $("version-line").textContent = `Master Test Web ${data.spec.version}: MasterTest Generator running in your browser.`;
+    $("version-line").textContent = `MasterTest Web ${data.spec.version}: MasterTest Generator running in your browser.`;
     buildForm(data.spec);
     update();
   } else if (data.type === "error") {
@@ -252,7 +252,7 @@ function update() {
   const usePw = $("use-password") && $("use-password").checked;
   const pwOk = !usePw || $("password").value.length > 0;
   $("make").disabled = !(ready && !running && exportFile && (classList || blanks > 0) && pwOk);
-  $("make").title = !ready ? "Master Test Web is still loading" : !exportFile ? "Choose a quiz export first"
+  $("make").title = !ready ? "MasterTest Web is still loading" : !exportFile ? "Choose a quiz export first"
     : !(classList || blanks > 0) ? "Choose a class list or a number of blank cards" : !pwOk ? "Type the password" : "";
 }
 

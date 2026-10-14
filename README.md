@@ -1,6 +1,6 @@
-# Master Test Web
+# MasterTest Web
 
-Version 0.3.9 of Master Test Web: [MasterTest Generator](https://github.com/mastertestcanada/examgenerator)
+Version 0.3.10 of MasterTest Web: [MasterTest Generator](https://github.com/mastertestcanada/examgenerator)
 built to run entirely in a web browser (MasterTest.ca). Teachers choose a Canvas
 quiz export (and a class list), set the options, and download a zip of exams,
 answer cards, the answer key and attendance sheet for marking with the
@@ -42,7 +42,7 @@ The first visit downloads about 21 MB, which the browser then caches.
 
 Do not edit these files here: they are built from the MasterTest Generator
 repository with `tools/build_web.py`, and each version is committed here as one
-commit ("Master Test Web x.y.z"). The output is identical to the desktop
+commit ("MasterTest Web x.y.z"). The output is identical to the desktop
 program's; the MasterTest Generator test suite checks it on every push.
 
 Support: support@mastertest.ca
