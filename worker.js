@@ -58,12 +58,39 @@ async function run({ files, argv, password }) {
   self.postMessage({ type: "done", name, zip: buffer, seconds }, [buffer]);
 }
 
+// Reads an export as soon as it is chosen: which quizzes it holds, then what one of them holds.
+function inspect({ name, data }) {
+  py.runPython("from examgen import web_runner; web_runner.reset()");
+  py.FS.writeFile("/work/in/" + name, new Uint8Array(data));
+  py.globals.set("web_name", name);
+  post("quizzes", { name, result: JSON.parse(py.runPython("web_runner.quizzes(web_name)")) });
+}
+
+function summary({ name, number, data }) {
+  // the export may have been cleared by a run since it was inspected
+  if (data && !py.FS.analyzePath("/work/in/" + name).exists) {
+    py.runPython("from examgen import web_runner; web_runner.reset()");
+    py.FS.writeFile("/work/in/" + name, new Uint8Array(data));
+  }
+  py.globals.set("web_name", name);
+  py.globals.set("web_number", number);
+  post("summary", { name, number, result: JSON.parse(py.runPython("web_runner.summary(web_name, web_number)")) });
+}
+
 self.onmessage = async (event) => {
   const msg = event.data;
   try {
-    if (msg.type === "run") await run(msg);
+    if (msg.type === "inspect") inspect(msg);
+    else if (msg.type === "summary") summary(msg);
+    else if (msg.type === "run") await run(msg);
   } catch (err) {
-    post("log", { text: String(err && err.message ? err.message : err), stream: "stderr" });
+    const text = String(err && err.message ? err.message : err);
+    if (msg.type === "inspect" || msg.type === "summary") {
+      post(msg.type === "inspect" ? "quizzes" : "summary",
+        { name: msg.name, number: msg.number, result: { error: "This file could not be read: " + text.split("\n").filter(Boolean).pop() } });
+      return;
+    }
+    post("log", { text, stream: "stderr" });
     post("failed", { seconds: 0 });
   }
 };

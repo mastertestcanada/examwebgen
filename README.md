@@ -1,6 +1,6 @@
 # MasterTest Web
 
-Version 0.3.11 of MasterTest Web: [MasterTest Generator](https://github.com/mastertestcanada/examgenerator)
+Version 0.3.12 of MasterTest Web: [MasterTest Generator](https://github.com/mastertestcanada/examgenerator)
 built to run entirely in a web browser (MasterTest.ca). Teachers choose a Canvas
 quiz export (and a class list), set the options, and download a zip of exams,
 answer cards, the answer key and attendance sheet for marking with the
@@ -30,8 +30,8 @@ The first visit downloads about 21 MB, which the browser then caches.
 
 | Path | What it is |
 |---|---|
-| `index.html`, `wizard.js` | The page: a two-step wizard (files and layout, then download). |
-| `advanced.html`, `advanced.js` | "All options": every option of the program; the form is built from its own option list. |
+| `index.html`, `wizard.js` | The page: a two-step wizard. |
+| `advanced.html`, `advanced.js` | "All options": every option of the program. |
 | `worker.js`, `mastertest-logo.png` | Runs the program for both pages; the logo. |
 | `app-<version>.zip` | MasterTest Generator itself, its answer-card instructions, images and the DejaVu Sans fallback font. |
 | `pyodide/` | Pyodide (Python for the browser) with lxml, Pillow, cryptography and fontTools. |

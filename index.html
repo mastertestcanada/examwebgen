@@ -102,6 +102,21 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .drop .clear { position: relative; z-index: 1; justify-self: start; grid-column: 2; font: inherit; font-size: .82rem;
   background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
 
+/* the quiz found in the export */
+.quiz { margin-top: 1rem; }
+.quiz-status { margin: 0; color: var(--muted); }
+.quiz-status.bad { color: var(--wrong); font-weight: 700; }
+.quiz legend { font-weight: 700; margin-bottom: .6rem; padding: 0; }
+.summary { display: grid; grid-template-columns: auto 1fr; gap: .2rem 1.2rem; align-items: center;
+  background: var(--cell-soft); padding: .9rem 1.1rem; margin-top: .8rem; }
+.summary .count { display: flex; flex-direction: column; align-items: center; min-width: 4.5rem; }
+.summary .n { font-size: 2.3rem; font-weight: 700; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.summary .unit { font-size: .8rem; color: var(--muted); }
+.summary p { margin: 0; }
+.sum-title { font-weight: 700; }
+.sum-kinds { color: var(--muted); font-size: .9rem; }
+.sum-note { font-size: .88rem; margin-top: .3rem !important; }
+
 /* layout carousel */
 .carousel { position: relative; }
 .track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(12.5rem, 1fr); gap: .9rem;
@@ -119,6 +134,9 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .layout .name::before { content: ""; flex: none; margin-top: .15rem; width: .95rem; height: .95rem; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--paper); }
 .layout[aria-checked="true"] .name::before { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--paper); }
 .layout .desc { color: var(--muted); font-size: .88rem; line-height: 1.4; }
+.layout .why-not { color: var(--wrong); font-size: .85rem; line-height: 1.35; }
+.layout[aria-disabled="true"] { cursor: not-allowed; background: var(--cell-soft); }
+.layout[aria-disabled="true"] .pic, .layout[aria-disabled="true"] .name, .layout[aria-disabled="true"] .desc { opacity: .45; }
 .nav { display: flex; gap: .5rem; justify-content: flex-end; margin-top: -.25rem; }
 .nav button { font: inherit; width: 2.4rem; height: 2.4rem; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink);
   cursor: pointer; display: grid; place-items: center; }
@@ -229,6 +247,21 @@ footer a { color: var(--muted); }
           <span class="state" id="class-state">Choose or drop the class list</span>
           <button type="button" class="clear" id="class-clear" hidden>Remove class list</button>
         </label>
+      </div>
+      <div class="quiz" id="quiz" aria-live="polite" hidden>
+        <p class="quiz-status" id="quiz-status"></p>
+        <fieldset id="quiz-choice" hidden>
+          <legend>This export holds <span id="quiz-count"></span> quizzes. Choose the one to print:</legend>
+          <div class="choices" id="quiz-list"></div>
+        </fieldset>
+        <div class="summary" id="quiz-summary" hidden>
+          <div class="count"><span class="n" id="sum-n"></span><span class="unit" id="sum-unit">questions</span></div>
+          <div>
+            <p class="sum-title" id="sum-title"></p>
+            <p class="sum-kinds" id="sum-kinds"></p>
+            <p class="sum-note" id="sum-note" hidden></p>
+          </div>
+        </div>
       </div>
     </section>
 

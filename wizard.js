@@ -10,6 +10,8 @@ let running = false;
 let exportFile = null;
 let classFile = null;
 let downloadUrl = null;
+// the quiz in the export: reading -> (choose) -> loading -> ready, or error
+const quiz = { state: "none", list: [], number: null, summary: null, message: "" };
 
 // ------------------------------------------------------------------ layouts
 
@@ -65,13 +67,21 @@ function buildLayouts() {
     b.setAttribute("role", "radio");
     b.dataset.id = l.id;
     b.innerHTML = `<span class="pic">${l.pic}</span><span class="name">${l.name}</span><span class="desc">${l.desc}</span>`;
-    b.addEventListener("click", () => selectLayout(l.id, false));
+    b.addEventListener("click", () => { if (b.getAttribute("aria-disabled") !== "true") selectLayout(l.id, false); });
     b.addEventListener("keydown", (e) => {
-      const i = LAYOUTS.indexOf(l);
-      const to = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: LAYOUTS.length - 1 }[e.key];
-      if (to === undefined) return;
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      const usable = LAYOUTS.filter((x) => !x.unavailable);
+      let to;
+      if (e.key === "Home") to = usable[0];
+      else if (e.key === "End") to = usable[usable.length - 1];
+      else if (step) {
+        let i = LAYOUTS.indexOf(l);
+        do { i = (i + step + LAYOUTS.length) % LAYOUTS.length; } while (LAYOUTS[i].unavailable);
+        to = LAYOUTS[i];
+      }
+      if (!to) return;
       e.preventDefault();
-      selectLayout(LAYOUTS[(to + LAYOUTS.length) % LAYOUTS.length].id, true);
+      selectLayout(to.id, true);
     });
     track.append(b);
   }
@@ -126,7 +136,110 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
   return () => { input.value = ""; show(null); };
 }
 
-const clearExport = filePicker("export", "export-drop", "export-state", "Choose or drop the .zip file", (f) => { exportFile = f; });
+const clearExport = filePicker("export", "export-drop", "export-state", "Choose or drop the .zip file", (f) => {
+  exportFile = f;
+  Object.assign(quiz, { state: f ? "reading" : "none", list: [], number: null, summary: null, message: "" });
+  setMergedAvailable(true, 0);
+  showQuiz();
+  if (f && ready) inspectExport();
+});
+
+// ------------------------------------------------------------------ the quiz in the export
+
+async function inspectExport() {
+  const f = exportFile;
+  const data = await f.arrayBuffer();
+  if (f !== exportFile) return;            // another file was chosen meanwhile
+  worker.postMessage({ type: "inspect", name: f.name, data }, [data]);
+}
+
+async function requestSummary(number) {
+  Object.assign(quiz, { state: "loading", number, summary: null });
+  showQuiz();
+  const data = await exportFile.arrayBuffer();
+  worker.postMessage({ type: "summary", name: exportFile.name, number, data }, [data]);
+}
+
+function onQuizzes(data) {
+  if (!exportFile || data.name !== exportFile.name) return;
+  const r = data.result;
+  if (r.error) {
+    Object.assign(quiz, { state: "error", message: r.error });
+  } else {
+    quiz.list = r.quizzes;
+    if (r.quizzes.length === 1) { requestSummary(1); return; }
+    Object.assign(quiz, { state: "choose", number: null });
+  }
+  showQuiz();
+}
+
+function onSummary(data) {
+  if (!exportFile || data.name !== exportFile.name || data.number !== quiz.number) return;
+  const r = data.result;
+  if (r.error) Object.assign(quiz, { state: "error", message: r.error });
+  else Object.assign(quiz, { state: "ready", summary: r });
+  if (r.error) setMergedAvailable(true, 0);
+  else setMergedAvailable(r.merged_ok, r.max_options);
+  showQuiz();
+}
+
+function showQuiz() {
+  $("quiz").hidden = quiz.state === "none";
+  const status = $("quiz-status");
+  status.className = "quiz-status" + (quiz.state === "error" ? " bad" : "");
+  status.textContent = { reading: ready ? "Reading the export…" : "The export will be read once the exam maker has loaded.",
+    loading: "Reading the quiz…", error: quiz.message }[quiz.state] || "";
+  status.hidden = !status.textContent;
+  // the list of quizzes, when there is more than one
+  const many = quiz.list.length > 1 && quiz.state !== "error";
+  $("quiz-choice").hidden = !many;
+  if (many && $("quiz-list").dataset.for !== exportFile.name) {
+    $("quiz-list").dataset.for = exportFile.name;
+    $("quiz-count").textContent = quiz.list.length;
+    $("quiz-list").replaceChildren(...quiz.list.map((q) => {
+      const label = document.createElement("label");
+      label.className = "bubble";
+      label.innerHTML = `<input type="radio" name="quiz" value="${q.number}"><span class="label"></span>`;
+      label.querySelector(".label").textContent = q.title;
+      label.querySelector("input").addEventListener("change", () => requestSummary(q.number));
+      return label;
+    }));
+  }
+  if (!many) $("quiz-list").dataset.for = "";
+  // what the chosen quiz holds
+  const s = quiz.summary;
+  $("quiz-summary").hidden = !(quiz.state === "ready" && s);
+  if (quiz.state === "ready" && s) {
+    $("sum-n").textContent = s.questions;
+    $("sum-unit").textContent = s.questions === 1 ? "question" : "questions";
+    $("sum-title").textContent = s.title;
+    $("sum-kinds").textContent = Object.entries(s.kinds).map(([k, n]) => `${n} ${k}`).join(", ");
+    const notes = [];
+    if (s.per_exam_with_banks !== null && s.per_exam_with_banks !== s.questions)
+      notes.push(`The quiz draws ${s.per_exam_with_banks} of them from question groups; every question is printed here for now.`);
+    if (s.omitted) notes.push(`${s.omitted} question${s.omitted === 1 ? " was" : "s were"} left out because ${s.omitted === 1 ? "it" : "they"} cannot be printed: ` +
+      s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; "));
+    if (!s.merged_ok) notes.push(`A question has ${s.max_options} options, so the merged layouts (at most 4) are not available.`);
+    $("sum-note").textContent = notes.join(" ");
+    $("sum-note").hidden = !notes.length;
+  }
+  update();
+}
+
+// the merged layouts print at most four options (A-D) per question
+function setMergedAvailable(ok, most) {
+  for (const l of LAYOUTS) {
+    if (!l.id.startsWith("merged")) continue;
+    l.unavailable = !ok;
+    const b = document.querySelector(`.layout[data-id="${l.id}"]`);
+    if (!b) continue;
+    b.setAttribute("aria-disabled", String(!ok));
+    let note = b.querySelector(".why-not");
+    if (!ok && !note) { note = document.createElement("span"); note.className = "why-not"; b.append(note); }
+    if (note) { note.hidden = ok; note.textContent = ok ? "" : `Not for this quiz: a question has ${most} options, and merged sheets show at most 4.`; }
+  }
+  if (!ok && layout.unavailable) selectLayout(LAYOUTS[0].id, false);
+}
 const clearClass = filePicker("classlist", "class-drop", "class-state", "Choose or drop the class list", (f) => {
   classFile = f;
   $("class-clear").hidden = !f;
@@ -166,15 +279,20 @@ function update() {
   for (const b of document.querySelectorAll('[data-step="variants"]')) b.disabled = !variantsOn;
   const b = blanks();
   document.querySelector('[data-step="blanks"][data-by="-1"]').disabled = b <= 0;
-  const ok = ready && !running && exportFile && (hasClass || b > 0);
+  const quizReady = quiz.state === "ready";
+  const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0);
   $("generate").disabled = !ok;
   $("why").textContent = !exportFile ? "Choose the quiz export to continue."
-    : !(hasClass || b > 0) ? "Choose a class list or at least one blank card."
-    : !ready ? "Generate is ready once the exam maker has loaded." : "";
+    : !ready ? "Generate is ready once the exam maker has loaded."
+    : quiz.state === "error" ? "Choose a Canvas quiz export (.zip) to continue."
+    : quiz.state === "choose" ? "Choose which quiz to print."
+    : !quizReady ? "Reading the quiz…"
+    : !(hasClass || b > 0) ? "Choose a class list or at least one blank card." : "";
 }
 
 function argv() {
   const a = [exportFile.name, ...layout.args];
+  if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
   if (classFile) {
     a.push("--class-list", classFile.name);
     if (mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
@@ -256,10 +374,15 @@ worker.onmessage = ({ data }) => {
     $("engine-state").textContent = "Ready";
     $("engine-detail").textContent = `· loaded in ${data.seconds.toFixed(0)} s`;
     $("version-line").textContent = `MasterTest Web ${data.spec.version}`;
+    if (exportFile && quiz.state === "reading") { showQuiz(); inspectExport(); }
     update();
   } else if (data.type === "error") {
     $("engine-state").textContent = "Could not start";
     $("engine-detail").textContent = "· " + data.text;
+  } else if (data.type === "quizzes") {
+    onQuizzes(data);
+  } else if (data.type === "summary") {
+    onSummary(data);
   } else if (data.type === "log") {
     $("log").textContent += data.text + "\n";
   } else if (data.type === "done") {
