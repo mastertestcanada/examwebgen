@@ -53,9 +53,10 @@ async function run({ files, argv, password }) {
   const result = py.runPython("web_runner.output_zip()").toJs();
   const name = result[0];
   const bytes = result[1];
+  const seed = result[2];
   py.runPython("web_runner.reset()");   // drop the student data from memory straight away
   const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-  self.postMessage({ type: "done", name, zip: buffer, seconds }, [buffer]);
+  self.postMessage({ type: "done", name, zip: buffer, seed, seconds }, [buffer]);
 }
 
 // Reads an export as soon as it is chosen: which quizzes it holds, then what one of them holds.

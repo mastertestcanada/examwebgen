@@ -1,6 +1,8 @@
 // MasterTest Web: the step-by-step page. Step 1 collects the quiz export, an optional class list,
-// the layout, variants and blank cards; Generate runs MasterTest Generator in the worker (in this
-// tab's memory) and step 2 hands over the zip. The full set of options is on advanced.html.
+// the question pool, paper size and layout, variants and blank cards; Generate asks for an optional
+// answer-key password, runs MasterTest Generator in the worker (in this tab's memory) and step 2
+// hands over the zip and the exam configuration (an options file that the command line reads
+// too, and that "Load Previous Exam Config" reads back). The full set of options is on advanced.html.
 "use strict";
 
 const $ = (id) => document.getElementById(id);
@@ -12,6 +14,12 @@ let classFile = null;
 let downloadUrl = null;
 // the quiz in the export: reading -> (choose) -> loading -> ready, or error
 const quiz = { state: "none", list: [], number: null, summary: null, message: "" };
+let paper = "traditional";      // traditional: letter and tabloid; iso: A4 and A3
+let extras = [];                // options from a loaded configuration that the page has no control for
+let pending = null;             // settings from a loaded configuration still waiting for the export: {quiz, maxItems, titleMap}
+let configName = "";
+let lastArgs = null;            // the options of the last run, for the configuration download
+let configUrl = null;
 
 // ------------------------------------------------------------------ layouts
 
@@ -25,38 +33,60 @@ const svg = (body, vb = "0 0 100 70") => `<svg viewBox="${vb}" aria-hidden="true
 
 const LAYOUTS = [
   {
-    id: "booklet", name: "Booklet + Answer Card", args: ["--page-size", "letter"],
-    desc: "Questions in a printed booklet, answers on a separate full-page card. Up to 100 answers per card.",
+    id: "booklet", name: "Booklet + Answer Card", size: ["letter", "a4"],
+    desc: (p) => `Questions in a printed booklet, answers on a separate full-page card. Up to 100 answers per card. ${p.prints}`,
     pic: svg(page(14, 6, 38, 52) + [14, 20, 26, 34, 40, 46].map((y, i) => line(19, y, i % 3 === 2 ? 18 : 27)).join("") +
       page(46, 12, 38, 52) + [20, 27, 34, 41, 48, 55].map((y, i) => bubbles(52, y, 4, (i * 3) % 4) + bubbles(71, y, 3, i % 3)).join("")),
   },
   {
-    id: "single", name: "Single Page Quiz", args: ["--page-size", "letter-single-page"],
-    desc: "A short quiz on one sheet: the answer area at the top, the questions below.",
+    id: "single", name: "Single Page Quiz", size: ["letter-single-page", "a4-single-page"],
+    desc: (p) => `A short quiz on one ${p.sheet}: the answer area at the top, the questions below.`,
     pic: svg(page(30, 4, 40, 60) + [11, 16].map((y, i) => bubbles(35, y, 4, i + 1) + bubbles(54, y, 3, i)).join("") +
       `<path d="M34 21h32" stroke="currentColor" stroke-width=".8"/>` + [27, 32, 39, 44, 51, 56].map((y, i) => line(35, y, i % 2 ? 20 : 28)).join("")),
   },
   {
-    id: "merged1", name: "Merged One Column", args: ["--page-size", "letter-merged", "--columns", "1"],
-    desc: "Each answer beside its question, in one full-width column. Room for wide written answers.",
+    id: "merged1", name: "Merged One Column", size: ["letter-merged", "a4-merged"], columns: 1,
+    desc: (p) => `Each answer beside its question, in one full-width column. Room for wide written answers. ${p.prints}`,
     pic: svg(page(28, 4, 44, 60) + [14, 23, 32, 41, 50].map((y, i) => line(32, y, 18) +
       (i % 2 ? cell(54, y, 14) : bubbles(55.5, y, 4, (i + 2) % 4))).join("")),
   },
   {
-    id: "merged2", name: "Merged Two Column", args: ["--page-size", "letter-merged"],
-    desc: "Each answer beside its question, in two columns. About 30 short questions per page.",
+    id: "merged2", name: "Merged Two Column", size: ["letter-merged", "a4-merged"],
+    desc: (p) => `Each answer beside its question, in two columns. About 30 short questions per page. ${p.prints}`,
     pic: svg(page(28, 4, 44, 60) + `<path d="M50 10v50" stroke="currentColor" stroke-width=".6" opacity=".5"/>` +
       [14, 22, 30, 38, 46, 54].map((y, i) => line(31, y, 7) + (i === 2 ? cell(39.5, y, 9) : bubbles(40.2, y, 2, i % 2)) +
         line(52, y, 7) + (i === 4 ? cell(60.5, y, 9) : bubbles(61.2, y, 2, (i + 1) % 2))).join("")),
   },
   {
-    id: "tabloid", name: "Tabloid Booklet", args: ["--page-size", "tabloid-booklet"],
-    desc: "Tabloid sheets printed on both sides and folded into a booklet, with a folded answer card.",
+    id: "tabloid", name: (p) => p.big + " Booklet", size: ["tabloid-booklet", "a3-booklet"],
+    desc: (p) => `${p.bigSheets} printed on both sides and folded into ${p.booklet}, with a folded answer card.`,
     pic: svg(page(8, 12, 84, 50) + `<path d="M50 12v50" stroke="currentColor" stroke-width="1" stroke-dasharray="2.5 2"/>` +
       [20, 26, 32, 38, 44, 50].map((y, i) => line(13, y, i % 3 === 2 ? 20 : 30) + line(55, y, i % 3 === 1 ? 22 : 31)).join("")),
   },
 ];
 let layout = LAYOUTS[0];
+
+const PAPER = {
+  traditional: { prints: "Prints on letter paper (8.5 × 11 in).", sheet: "letter-size sheet (8.5 × 11 in)", big: "Tabloid",
+    bigSheets: "Tabloid sheets (11 × 17 in)", booklet: "a letter-size booklet" },
+  iso: { prints: "Prints on A4 paper.", sheet: "A4 sheet", big: "A3",
+    bigSheets: "A3 sheets", booklet: "an A4 booklet" },
+};
+const text = (v) => (typeof v === "function" ? v(PAPER[paper]) : v);
+const layoutName = (l) => text(l.name);
+const layoutArgs = (l) => ["--page-size", l.size[paper === "iso" ? 1 : 0], ...(l.columns === 1 ? ["--columns", "1"] : [])];
+
+function setPaper(value) {
+  paper = value;
+  for (const r of document.querySelectorAll('input[name="paper"]')) r.checked = r.value === value;
+  for (const b of $("layouts").children) {
+    const l = LAYOUTS.find((x) => x.id === b.dataset.id);
+    b.querySelector(".name").textContent = layoutName(l);
+    b.querySelector(".desc").textContent = text(l.desc);
+  }
+  setMergedAvailable(quiz.state === "ready" ? quiz.summary : null);
+}
+for (const r of document.querySelectorAll('input[name="paper"]')) r.addEventListener("change", () => { if (r.checked) setPaper(r.value); });
 
 function buildLayouts() {
   const track = $("layouts");
@@ -66,7 +96,9 @@ function buildLayouts() {
     b.className = "layout";
     b.setAttribute("role", "radio");
     b.dataset.id = l.id;
-    b.innerHTML = `<span class="pic">${l.pic}</span><span class="name">${l.name}</span><span class="desc">${l.desc}</span>`;
+    b.innerHTML = `<span class="pic">${l.pic}</span><span class="name"></span><span class="desc"></span>`;
+    b.querySelector(".name").textContent = layoutName(l);
+    b.querySelector(".desc").textContent = text(l.desc);
     b.addEventListener("click", () => { if (b.getAttribute("aria-disabled") !== "true") selectLayout(l.id, false); });
     b.addEventListener("keydown", (e) => {
       const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
@@ -169,6 +201,14 @@ function onQuizzes(data) {
     quiz.list = r.quizzes;
     if (r.quizzes.length === 1) { requestSummary(1); return; }
     Object.assign(quiz, { state: "choose", number: null });
+    const wanted = pending && pending.quiz;
+    if (wanted && wanted <= r.quizzes.length) {
+      showQuiz();
+      const radio = document.querySelector(`#quiz-list input[value="${wanted}"]`);
+      if (radio) radio.checked = true;
+      requestSummary(wanted);
+      return;
+    }
   }
   showQuiz();
 }
@@ -179,6 +219,7 @@ function onSummary(data) {
   if (r.error) Object.assign(quiz, { state: "error", message: r.error });
   else Object.assign(quiz, { state: "ready", summary: r });
   setMergedAvailable(r.error ? null : r);
+  if (!r.error) resetPool(r);
   showQuiz();
 }
 
@@ -208,6 +249,7 @@ function showQuiz() {
   // what the chosen quiz holds
   const s = quiz.summary;
   $("quiz-summary").hidden = !(quiz.state === "ready" && s);
+  $("pool").hidden = !(quiz.state === "ready" && s);
   if (quiz.state === "ready" && s) {
     $("sum-n").textContent = s.questions;
     $("sum-unit").textContent = s.questions === 1 ? "question" : "questions";
@@ -215,7 +257,7 @@ function showQuiz() {
     $("sum-kinds").textContent = Object.entries(s.kinds).map(([k, n]) => `${n} ${k}`).join(", ");
     const notes = [];
     if (s.per_exam_with_banks !== null && s.per_exam_with_banks !== s.questions)
-      notes.push(`The quiz draws ${s.per_exam_with_banks} of them from question groups; every question is printed here for now.`);
+      notes.push(`The quiz draws ${s.per_exam_with_banks} of them from question groups; every question is printed unless you alter the question pool.`);
     if (s.omitted) notes.push(`${s.omitted} question${s.omitted === 1 ? " was" : "s were"} left out because ${s.omitted === 1 ? "it" : "they"} cannot be printed: ` +
       s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; "));
     if (!s.merged1_ok) notes.push(`A question has ${s.max_options} options, so the merged layouts (at most 6 in one column, 4 in two) are not available.`);
@@ -263,7 +305,7 @@ for (const b of document.querySelectorAll("[data-step]")) {
     update();
   });
 }
-for (const id of ["blanks", "variants"]) {
+for (const id of ["blanks", "variants", "limit"]) {
   $(id).addEventListener("input", update);
   $(id).addEventListener("change", () => { $(id).value = clamp($(id), parseInt($(id).value, 10) || 0); update(); });
 }
@@ -287,26 +329,360 @@ function update() {
   const b = blanks();
   document.querySelector('[data-step="blanks"][data-by="-1"]').disabled = b <= 0;
   const quizReady = quiz.state === "ready";
-  const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0);
+  const poolProblem = quizReady ? showPool() : "";
+  const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem;
   $("generate").disabled = !ok;
   $("why").textContent = !exportFile ? "Choose the quiz export to continue."
     : !ready ? "Generate is ready once the exam maker has loaded."
     : quiz.state === "error" ? "Choose a Canvas quiz export (.zip) to continue."
     : quiz.state === "choose" ? "Choose which quiz to print."
     : !quizReady ? "Reading the quiz…"
-    : !(hasClass || b > 0) ? "Choose a class list or at least one blank card." : "";
+    : !(hasClass || b > 0) ? "Choose a class list or at least one blank card."
+    : poolProblem;
 }
 
-function argv() {
-  const a = [exportFile.name, ...layout.args];
+// the options for a run, without the files: the configuration that can be saved and loaded
+function options() {
+  const a = [...layoutArgs(layout)];
   if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
-  if (classFile) {
-    a.push("--class-list", classFile.name);
-    if (mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
-  }
+  if (classFile && mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
   if (blanks() > 0) a.push("--blank-cards", String(blanks()));
-  return a;
+  if (!extras.includes("--use-item-banks")) a.push(...poolArgs());
+  return [...a, ...extras];
 }
+
+function argv(password) {
+  return [exportFile.name, ...(classFile ? ["--class-list", classFile.name] : []), ...options(), ...(password ? ["--password"] : [])];
+}
+
+// ------------------------------------------------------------------ the question pool
+
+// --max-items (a number of questions drawn from the whole quiz) or --title-map (questions with the
+// same name form a bank; a number drawn from each). The program allows one of them at a time.
+const pool = { total: 0, titles: [], classic: false };
+
+function resetPool(s) {
+  pool.total = s.questions;
+  pool.titles = s.titles;
+  pool.classic = s.engine === "classic";
+  $("limit").max = String(s.questions);
+  $("limit").value = String(s.questions);
+  $("limit-of").textContent = `of ${s.questions} question${s.questions === 1 ? "" : "s"} (default: all ${s.questions})`;
+  $("simulate").checked = false;
+  $("simulate").disabled = !pool.classic;
+  $("simulate-sub").textContent = pool.classic
+    ? "Questions with the same name form a bank. Choose how many questions each exam draws from each name."
+    : "Only for Classic Quizzes exports: New Quizzes do not keep question names in their exports.";
+  $("titles").replaceChildren(...s.titles.map((t, i) => {
+    const row = document.createElement("label");
+    row.className = "row";
+    row.innerHTML = `<span class="t"></span><input type="number" min="0" max="${t.count}" step="1" value="${t.count}" inputmode="numeric"><span class="of">of ${t.count}</span>`;
+    const name = row.querySelector(".t");
+    name.textContent = t.title || "(no name)";
+    name.classList.toggle("none", !t.title);
+    const input = row.querySelector("input");
+    input.dataset.index = String(i);
+    input.setAttribute("aria-label", `Questions named ${t.title || "(no name)"}, at most ${t.count}`);
+    input.addEventListener("input", update);
+    return row;
+  }));
+  if (pending) applyPendingPool();
+}
+
+function counts() {
+  return [...$("titles").querySelectorAll("input")].map((i) => i.value.trim() === "" ? NaN : Number(i.value));
+}
+
+// shows the state of the pool controls; returns why Generate cannot go ahead, or ""
+function showPool() {
+  const sim = $("simulate").checked;
+  const banks = extras.includes("--use-item-banks");
+  $("limit-row").classList.toggle("off", sim || banks);
+  for (const el of [$("limit"), ...document.querySelectorAll('[data-step="limit"]')]) el.disabled = sim || banks;
+  $("banks").classList.toggle("off", !pool.classic);
+  $("titles").classList.toggle("off", !sim);
+  for (const i of $("titles").querySelectorAll("input")) i.disabled = !sim;
+  $("limit-hint").textContent = banks ? "The loaded configuration uses --use-item-banks: the quiz's own question groups decide."
+    : sim ? "Not used while question banks are simulated."
+    : "Each exam gets this many questions, drawn at random from the whole quiz.";
+  const total = $("banks-total");
+  total.hidden = !sim;
+  if (sim) {
+    const c = counts();
+    const bad = c.findIndex((n, i) => !Number.isInteger(n) || n < 0 || n > pool.titles[i].count);
+    const sum = c.reduce((a, n) => a + (Number.isInteger(n) ? n : 0), 0);
+    const used = c.filter((n) => n > 0).length;
+    total.classList.toggle("bad", bad >= 0 || sum === 0);
+    if (bad >= 0) {
+      const t = pool.titles[bad];
+      total.textContent = `“${t.title || "(no name)"}” takes a whole number from 0 to ${t.count}.`;
+      return `Fix the number of questions for “${t.title || "(no name)"}”.`;
+    }
+    if (sum === 0) { total.textContent = "Choose at least one question."; return "Choose at least one question for the exam."; }
+    total.textContent = `Each exam: ${sum} question${sum === 1 ? "" : "s"} from ${used} of ${pool.titles.length} name${pool.titles.length === 1 ? "" : "s"}.`;
+    return "";
+  }
+  if (banks) return "";
+  const n = Number($("limit").value);
+  if (!Number.isInteger(n) || n < 1 || n > pool.total) return `Limit the test to a number of questions from 1 to ${pool.total}.`;
+  return "";
+}
+
+function poolArgs() {
+  if (quiz.state !== "ready" || !quiz.summary) return [];
+  if ($("simulate").checked) {
+    const c = counts();
+    const map = pool.titles.map((t, i) => [t.title, c[i]]).filter(([, n]) => n > 0)
+      .map(([t, n]) => `${t.replace(/;/g, "\\;")}=${n}`).join("; ");
+    return ["--title-map", map];
+  }
+  const n = Number($("limit").value);
+  return Number.isInteger(n) && n >= 1 && n < pool.total ? ["--max-items", String(n)] : [];
+}
+
+$("simulate").addEventListener("change", update);
+
+// ------------------------------------------------------------------ exam configurations
+
+// an options file: one option per line, values quoted as the command line reads them
+function quote(v) {
+  return /^[\w@%+=:,./-]+$/.test(v) ? v : `"${v.replace(/(["\\$`])/g, "\\$1")}"`;
+}
+
+function configText(seed) {
+  const lines = [], o = lastArgs.options;
+  for (let i = 0; i < o.length; i++) {
+    if (o[i].startsWith("-") || !lines.length) lines.push(quote(o[i]));
+    else lines[lines.length - 1] += " " + quote(o[i]);
+  }
+  const head = [
+    `# MasterTest exam configuration, saved by ${$("version-line").textContent} on ${new Date().toISOString().slice(0, 10)}`,
+    `# Quiz: ${lastArgs.title}` + (lastArgs.quiz ? ` (quiz ${lastArgs.quiz.number} of ${lastArgs.quiz.of} in ${lastArgs.quiz.file})` : ""),
+    "# To use it again: Load Previous Exam Config in MasterTest Web, or on a computer:",
+    `#   python exam_generator.py <quiz export.zip>${lastArgs.classList ? " --class-list <class list.csv>" : ""} @<this file>`,
+  ];
+  if (seed && !o.includes("--seed")) head.push(`# This run used --seed ${seed}; add that line to print exactly the same exams again.`);
+  return head.join("\n") + "\n\n" + lines.join("\n") + "\n";
+}
+
+function offerConfig(data) {
+  if (configUrl) URL.revokeObjectURL(configUrl);
+  configUrl = URL.createObjectURL(new Blob([configText(data.seed)], { type: "text/plain" }));
+  const a = $("config-download");
+  a.href = configUrl;
+  a.download = data.name.replace(/\.zip$/i, "") + "_config.txt";
+  $("config-link").hidden = false;
+}
+
+// splits a line the way the command line does (POSIX shell quoting)
+function splitLine(line) {
+  const out = [];
+  let cur = "", has = false, q = null;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q === "'") { if (c === "'") q = null; else cur += c; continue; }
+    if (q === '"') {
+      if (c === '"') q = null;
+      else if (c === "\\" && i + 1 < line.length && '"\\$`'.includes(line[i + 1])) cur += line[++i];
+      else cur += c;
+      continue;
+    }
+    if (c === "'" || c === '"') { q = c; has = true; }
+    else if (c === "\\" && i + 1 < line.length) { cur += line[++i]; has = true; }
+    else if (/\s/.test(c)) { if (has || cur) out.push(cur); cur = ""; has = false; }
+    else { cur += c; has = true; }
+  }
+  if (q) throw new Error(`a quotation mark is not closed in: ${line}`);
+  if (has || cur) out.push(cur);
+  return out;
+}
+
+const LAYOUT_OF = (size, columns) => {
+  const s = size.toLowerCase();
+  if (s.includes("single")) return "single";
+  if (s.includes("merged")) return columns === "1" ? "merged1" : "merged2";
+  if (s.includes("tabloid") || s.startsWith("a3")) return "tabloid";
+  return "booklet";
+};
+
+function loadConfig(name, textIn) {
+  const tokens = [];
+  for (const raw of textIn.replace(/^\uFEFF/, "").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line && !line.startsWith("#")) tokens.push(...splitLine(line));
+  }
+  // --name=value -> --name value
+  const t = tokens.flatMap((x) => (x.startsWith("--") && x.includes("=") ? [x.slice(0, x.indexOf("=")), x.slice(x.indexOf("=") + 1)] : [x]));
+  const got = {}, rest = [], ignored = [];
+  const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o"]);
+  for (let i = 0; i < t.length; i++) {
+    const o = t[i];
+    if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
+    if (o === "--password") { got[o] = true; continue; }
+    if (o.startsWith("@")) { ignored.push(o); continue; }
+    if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
+    rest.push(o);
+    while (i + 1 < t.length && !t[i + 1].startsWith("-")) rest.push(t[++i]);
+  }
+  for (const o of ["--class-list", "--output", "-o"]) if (o in got) ignored.push(o);
+  // apply what the page has controls for
+  const size = got["--page-size"] || "letter";
+  const iso = /^a[34]/i.test(size);
+  setPaper(iso ? "iso" : "traditional");
+  const id = LAYOUT_OF(size, got["--columns"]);
+  if (!LAYOUTS.find((l) => l.id === id).unavailable) selectLayout(id, false);
+  else selectLayout(id === "merged2" && !LAYOUTS[2].unavailable ? "merged1" : "booklet", false);
+  const v = got["--variants"];
+  const variants = v && /^\d+$/.test(v);
+  for (const r of document.querySelectorAll('input[name="mode"]')) r.checked = r.value === (variants ? "variants" : "unique");
+  if (variants) $("variants").value = clamp($("variants"), Number(v));
+  $("blanks").value = clamp($("blanks"), Number(got["--blank-cards"] || 0) || 0);
+  extras = rest;
+  pending = { quiz: got["--quiz"] ? Number(got["--quiz"]) : null, maxItems: got["--max-items"] || null, titleMap: got["--title-map"] || null };
+  configName = name;
+  // say what was loaded
+  const parts = [`${layoutName(LAYOUTS.find((l) => l.id === layout.id))} on ${iso ? "A4/A3" : "letter/tabloid"} paper`];
+  if (variants) parts.push(`${v} variants`);
+  if (Number(got["--blank-cards"]) > 0) parts.push(`${got["--blank-cards"]} blank card${got["--blank-cards"] === "1" ? "" : "s"}`);
+  if (pending.maxItems) parts.push(`${pending.maxItems} questions per exam`);
+  if (pending.titleMap) parts.push("simulated question banks");
+  if (pending.quiz) parts.push(`quiz ${pending.quiz} of the export`);
+  let msg = `Loaded ${name}: ${parts.join(", ")}.`;
+  if (extras.length) msg += ` Also used when generating: ${extras.join(" ")}.`;
+  if (got["--password"]) msg += " The answer key was password protected; you are asked for a password when you generate.";
+  if (ignored.length) msg += ` Not used here (choose the files on this page): ${ignored.join(", ")}.`;
+  showConfigState(msg, false);
+  // the export may already be open
+  if (quiz.state === "choose" && pending.quiz && pending.quiz <= quiz.list.length) {
+    const radio = document.querySelector(`#quiz-list input[value="${pending.quiz}"]`);
+    if (radio) radio.checked = true;
+    requestSummary(pending.quiz);
+  } else if (quiz.state === "ready" && (!pending.quiz || pending.quiz === quiz.number || quiz.list.length <= 1)) {
+    resetPool(quiz.summary);
+  } else if (quiz.state === "ready" && pending.quiz <= quiz.list.length) {
+    const radio = document.querySelector(`#quiz-list input[value="${pending.quiz}"]`);
+    if (radio) radio.checked = true;
+    requestSummary(pending.quiz);
+  }
+  update();
+}
+
+// the question pool from a loaded configuration, once the quiz is known
+function applyPendingPool() {
+  const p = pending;
+  pending = null;
+  const problems = [];
+  if (p.titleMap) {
+    if (!pool.classic) problems.push("its simulated question banks are only for Classic Quizzes exports");
+    else {
+      const map = new Map();
+      for (const part of p.titleMap.split(/(?<!\\);/)) {
+        const s = part.replace(/\\;/g, ";").trim();
+        if (!s) continue;
+        const at = s.lastIndexOf("=");
+        if (at < 0) { problems.push(`“${s}” in its title map has no =count`); continue; }
+        map.set(s.slice(0, at).trim(), Number(s.slice(at + 1).trim()));
+      }
+      if (map.size) {
+        $("simulate").checked = true;
+        const inputs = $("titles").querySelectorAll("input");
+        pool.titles.forEach((t, i) => { inputs[i].value = String(map.has(t.title) ? map.get(t.title) : 0); });
+        const missing = [...map.keys()].filter((k) => !pool.titles.some((t) => t.title === k));
+        if (missing.length) problems.push(`this quiz has no questions named ${missing.map((m) => `“${m}”`).join(", ")}`);
+      } else if (!/=/.test(p.titleMap)) problems.push(`its title map is a file (${p.titleMap}); set the numbers here instead`);
+    }
+  } else if (p.maxItems) {
+    const n = Number(p.maxItems);
+    if (Number.isInteger(n) && n >= 1 && n <= pool.total) $("limit").value = String(n);
+    else problems.push(`it limits the test to ${p.maxItems} questions, but this quiz has ${pool.total}`);
+  }
+  if (problems.length) showConfigState($("config-text").textContent + " Check the question pool: " + problems.join("; ") + ".", true);
+  if (p.titleMap || p.maxItems) $("pool").open = true;
+}
+
+function showConfigState(msg, bad) {
+  $("config-text").textContent = msg;
+  $("config-state").classList.toggle("bad", bad);
+  $("config-state").hidden = false;
+}
+
+$("config-file").addEventListener("change", async () => {
+  const f = $("config-file").files[0];
+  $("config-file").value = "";
+  if (!f) return;
+  try {
+    if (f.size > 100000) throw new Error("this is not an exam configuration (too large)");
+    loadConfig(f.name, await f.text());
+  } catch (err) {
+    showConfigState(`${f.name} could not be loaded: ${err.message}.`, true);
+  }
+});
+$("config-forget").addEventListener("click", () => {
+  extras = []; pending = null; configName = "";
+  $("config-state").hidden = true;
+  update();
+});
+
+// ------------------------------------------------------------------ the answer-key password
+
+const COMMON = ["password", "passw0rd", "qwerty", "letmein", "welcome", "admin", "iloveyou", "monkey", "dragon", "sunshine",
+  "football", "baseball", "master", "mastertest", "exam", "test", "teacher", "student", "school", "canvas", "abc123", "123456"];
+
+// a rough estimate of how hard the password is to guess
+function strength(pw) {
+  if (!pw) return { level: "none", label: "No password", pct: 4 };
+  let set = 0;
+  if (/[a-z]/.test(pw)) set += 26;
+  if (/[A-Z]/.test(pw)) set += 26;
+  if (/\d/.test(pw)) set += 10;
+  if (/[^A-Za-z0-9]/.test(pw)) set += 33;
+  let bits = pw.length * Math.log2(Math.max(set, 2));
+  bits *= Math.min(1, (new Set(pw).size * 2) / pw.length);           // aaaaaaaa, abababab
+  const lower = pw.toLowerCase();
+  if (COMMON.includes(lower.replace(/[^a-z]/g, "")) || COMMON.includes(lower)) bits = Math.min(bits, 24);
+  else if (COMMON.some((w) => w.length > 3 && lower.includes(w))) bits -= 12;
+  if (/0123|1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|qwer|asdf|zxcv/.test(lower)) bits -= 10;
+  const pct = Math.max(10, Math.min(100, (bits / 80) * 100));
+  if (bits < 40) return { level: "low", label: "Low strength", pct };
+  if (bits < 60) return { level: "medium", label: "Medium strength", pct };
+  return { level: "strong", label: "Strong password", pct };
+}
+
+function showStrength() {
+  const s = strength($("pw").value);
+  const bar = $("pw-bar");
+  bar.style.width = s.pct + "%";
+  bar.style.background = `var(--${s.level === "medium" ? "medium" : s.level === "strong" ? "strong" : "weak"})`;
+  $("pw-strength").textContent = s.label;
+  $("pw-strength").dataset.level = s.level;
+  $("pw-accept").textContent = $("pw").value ? "Accept password" : "Continue without a password";
+}
+
+function openPassword() {
+  $("pw").value = "";
+  $("pw").type = "password";
+  $("pw-show").textContent = "Show";
+  $("pw-show").setAttribute("aria-pressed", "false");
+  showStrength();
+  $("pw-dialog").showModal();
+  $("pw").focus();
+}
+$("pw").addEventListener("input", showStrength);
+$("pw-show").addEventListener("click", () => {
+  const show = $("pw").type === "password";
+  $("pw").type = show ? "text" : "password";
+  $("pw-show").textContent = show ? "Hide" : "Show";
+  $("pw-show").setAttribute("aria-pressed", String(show));
+  $("pw").focus();
+});
+$("pw-cancel").addEventListener("click", () => $("pw-dialog").close());
+$("pw-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const pw = $("pw").value;
+  $("pw").value = "";
+  $("pw-dialog").close();
+  generate(pw);
+});
 
 // ------------------------------------------------------------------ run
 
@@ -321,7 +697,9 @@ function showStep(n) {
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
-$("generate").addEventListener("click", async () => {
+$("generate").addEventListener("click", () => openPassword());
+
+async function generate(password) {
   running = true;
   update();
   showStep(2);
@@ -330,14 +708,17 @@ $("generate").addEventListener("click", async () => {
   $("result-title").textContent = "Making your exam…";
   $("result-text").textContent = "This takes a few seconds for a class, longer for large exams.";
   $("download").hidden = true;
+  $("config-link").hidden = true;
   $("back").hidden = true;
   $("log").hidden = true;
   $("log").textContent = "";
   if (downloadUrl) { URL.revokeObjectURL(downloadUrl); downloadUrl = null; }
+  lastArgs = { options: [...options(), ...(password ? ["--password"] : [])], title: quiz.summary.title,
+    quiz: quiz.list.length > 1 ? { number: quiz.number, of: quiz.list.length, file: exportFile.name } : null, classList: !!classFile };
   const files = [{ name: exportFile.name, data: await exportFile.arrayBuffer() }];
   if (classFile) files.push({ name: classFile.name, data: await classFile.arrayBuffer() });
-  worker.postMessage({ type: "run", files, argv: argv(), password: "" }, files.map((f) => f.data));
-});
+  worker.postMessage({ type: "run", files, argv: argv(password), password }, files.map((f) => f.data));
+}
 
 $("back").addEventListener("click", () => { showStep(1); $("generate").focus(); });
 
@@ -363,6 +744,7 @@ function finish(ok, data) {
   a.download = data.name;
   a.textContent = `Download ${data.name} again`;
   a.hidden = false;
+  offerConfig(data);
   $("big").className = "big-bubble ok";
   $("big").innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6"/></svg>';
   $("result-title").textContent = "Your exam is now downloading";
