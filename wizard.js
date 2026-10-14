@@ -139,7 +139,7 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
 const clearExport = filePicker("export", "export-drop", "export-state", "Choose or drop the .zip file", (f) => {
   exportFile = f;
   Object.assign(quiz, { state: f ? "reading" : "none", list: [], number: null, summary: null, message: "" });
-  setMergedAvailable(true, 0);
+  setMergedAvailable(null);
   showQuiz();
   if (f && ready) inspectExport();
 });
@@ -178,8 +178,7 @@ function onSummary(data) {
   const r = data.result;
   if (r.error) Object.assign(quiz, { state: "error", message: r.error });
   else Object.assign(quiz, { state: "ready", summary: r });
-  if (r.error) setMergedAvailable(true, 0);
-  else setMergedAvailable(r.merged_ok, r.max_options);
+  setMergedAvailable(r.error ? null : r);
   showQuiz();
 }
 
@@ -219,26 +218,34 @@ function showQuiz() {
       notes.push(`The quiz draws ${s.per_exam_with_banks} of them from question groups; every question is printed here for now.`);
     if (s.omitted) notes.push(`${s.omitted} question${s.omitted === 1 ? " was" : "s were"} left out because ${s.omitted === 1 ? "it" : "they"} cannot be printed: ` +
       s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; "));
-    if (!s.merged_ok) notes.push(`A question has ${s.max_options} options, so the merged layouts (at most 4) are not available.`);
+    if (!s.merged1_ok) notes.push(`A question has ${s.max_options} options, so the merged layouts (at most 6 in one column, 4 in two) are not available.`);
+    else if (!s.merged_ok) notes.push(`A question has ${s.max_options} options, so Merged Two Column (at most 4) is not available; Merged One Column is.`);
     $("sum-note").textContent = notes.join(" ");
     $("sum-note").hidden = !notes.length;
   }
   update();
 }
 
-// the merged layouts print at most four options (A-D) per question
-function setMergedAvailable(ok, most) {
+// merged sheets print at most six options (A-F) per question in one column, four (A-D) in two
+const MERGED_LIMIT = { merged1: ["merged1_ok", 6], merged2: ["merged_ok", 4] };
+function setMergedAvailable(summary) {
   for (const l of LAYOUTS) {
-    if (!l.id.startsWith("merged")) continue;
+    if (!MERGED_LIMIT[l.id]) continue;
+    const [key, most] = MERGED_LIMIT[l.id];
+    const ok = !summary || summary[key];
     l.unavailable = !ok;
     const b = document.querySelector(`.layout[data-id="${l.id}"]`);
     if (!b) continue;
     b.setAttribute("aria-disabled", String(!ok));
     let note = b.querySelector(".why-not");
     if (!ok && !note) { note = document.createElement("span"); note.className = "why-not"; b.append(note); }
-    if (note) { note.hidden = ok; note.textContent = ok ? "" : `Not for this quiz: a question has ${most} options, and merged sheets show at most 4.`; }
+    if (note) {
+      note.hidden = ok;
+      note.textContent = ok ? "" : `Not for this quiz: a question has ${summary.max_options} options, and this layout shows at most ${most}.` +
+        (l.id === "merged2" && summary.merged1_ok ? " Merged One Column can." : "");
+    }
   }
-  if (!ok && layout.unavailable) selectLayout(LAYOUTS[0].id, false);
+  if (layout.unavailable) selectLayout(LAYOUTS[0].id, false);
 }
 const clearClass = filePicker("classlist", "class-drop", "class-state", "Choose or drop the class list", (f) => {
   classFile = f;
