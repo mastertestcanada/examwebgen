@@ -1,4 +1,4 @@
-// Runs Exam Generator (Python) inside the browser with Pyodide. Everything happens in this
+// Runs MasterTest Generator (Python) inside the browser with Pyodide. Everything happens in this
 // worker's memory: the files the page sends are written to an in-memory file system, the
 // program runs, and the result comes back as a zip. Nothing is sent anywhere.
 "use strict";
@@ -19,7 +19,7 @@ async function load() {
   post("status", { text: "Loading PDF and image libraries…" });
   const wheels = build.wheels.map((w) => new URL("wheels/" + w, self.location.href).href);
   await py.loadPackage([...build.packages, ...wheels], { messageCallback: () => {}, errorCallback: (m) => post("log", { text: m, stream: "stderr" }) });
-  post("status", { text: "Loading Exam Generator…" });
+  post("status", { text: "Loading MasterTest Generator…" });
   const app = await (await fetch(build.app)).arrayBuffer();
   py.unpackArchive(app, "zip", { extractDir: "/app" });
   py.runPython("import sys; sys.path.insert(0, '/app')");

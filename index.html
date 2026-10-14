@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Exam Generator</title>
+<title>Master Test Web</title>
 <meta name="description" content="Make printable exams and answer cards from a Canvas quiz export, entirely in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%23000'/%3E%3C/svg%3E">
 <style>
@@ -17,13 +17,15 @@
   --ink: #000000;
   --cell: #d9d9d9;          /* the 15% grey of the answer cells */
   --cell-focus: #c4c4c4;
-  --muted: #5a6b80;         /* ExamMaster secondary */
+  --muted: #5a6b80;         /* MasterTest Marker secondary */
   --rule: #b8c0ca;
-  --accent: #0b74f2;        /* ExamMaster primary */
+  --accent: #0b74f2;        /* MasterTest Marker primary */
   --accent-ink: #ffffff;
   --wrong: #c62828;
   --right: #1b7a3a;
   --mark: 14px;             /* corner registration squares */
+  --logo-bg: transparent;   /* the MasterTest.ca logo is drawn for light backgrounds */
+  --logo-pad: 0;
   font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.5;
@@ -34,13 +36,13 @@
   :root:not([data-theme="light"]) {
     --paper: #15191e; --ink: #f2f4f7; --cell: #2b323b; --cell-focus: #36404b;
     --muted: #9aa8b8; --rule: #3a434e; --accent: #4c9bff; --accent-ink: #00152e;
-    --wrong: #ff7b72; --right: #5fd38a;
+    --wrong: #ff7b72; --right: #5fd38a; --logo-bg: #ffffff; --logo-pad: .45rem .7rem;
   }
 }
 :root[data-theme="dark"] {
   --paper: #15191e; --ink: #f2f4f7; --cell: #2b323b; --cell-focus: #36404b;
   --muted: #9aa8b8; --rule: #3a434e; --accent: #4c9bff; --accent-ink: #00152e;
-  --wrong: #ff7b72; --right: #5fd38a;
+  --wrong: #ff7b72; --right: #5fd38a; --logo-bg: #ffffff; --logo-pad: .45rem .7rem;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -58,6 +60,8 @@ body { margin: 0; background: var(--paper); }
 
 header { display: grid; grid-template-columns: 1fr auto; gap: 1rem 2rem; align-items: end;
   border-bottom: 1px solid var(--rule); padding-bottom: 1.25rem; }
+.logo { display: block; box-sizing: content-box; width: min(300px, 70vw); height: auto; margin: 0 0 .9rem;
+  background: var(--logo-bg); padding: var(--logo-pad); border-radius: 4px; }
 h1 { font-size: 2.25rem; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
 .lede { margin: .5rem 0 0; max-width: 36rem; color: var(--muted); }
 .engine { font-size: .875rem; color: var(--muted); text-align: right; min-width: 11rem; }
@@ -152,8 +156,9 @@ footer p { margin: .25rem 0; max-width: 44rem; }
   <div class="marks" aria-hidden="true"></div>
   <header>
     <div>
-      <h1>Exam Generator</h1>
-      <p class="lede">Turn a Canvas quiz export into printable exams, answer cards and an answer key for ExamMaster. Everything runs in this browser tab: your quiz and class list are never uploaded.</p>
+      <img class="logo" src="mastertest-logo.png" alt="MasterTest.ca" width="300" height="30">
+      <h1>Master Test Web</h1>
+      <p class="lede">MasterTest Generator in your browser: turn a Canvas quiz export into printable exams, answer cards and an answer key for MasterTest Marker. Everything runs in this browser tab: your quiz and class list are never uploaded.</p>
     </div>
     <div class="engine" role="status" aria-live="polite">
       <strong id="engine-state">Starting…</strong>
@@ -219,12 +224,12 @@ footer p { margin: .25rem 0; max-width: 44rem; }
         <a class="download" id="download" hidden>Download</a>
       </div>
       <p id="result" role="status" aria-live="polite"></p>
-      <pre id="log" aria-label="Messages from Exam Generator"></pre>
+      <pre id="log" aria-label="Messages from MasterTest Generator"></pre>
     </div>
   </section>
 
   <footer>
-    <p id="version-line">Exam Generator</p>
+    <p id="version-line">Master Test Web</p>
     <p>Files you choose stay in this tab's memory and are cleared after each run and when the tab closes. Nothing is stored on this computer or sent to a server.</p>
   </footer>
 </main>

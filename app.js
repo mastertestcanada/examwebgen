@@ -1,4 +1,4 @@
-// Exam Generator in the browser: builds the form from the program's own option list, sends the
+// Master Test Web, MasterTest Generator in the browser: builds the form from the program's own option list, sends the
 // chosen files to the worker (which runs the Python program in memory) and offers the result.
 "use strict";
 
@@ -21,7 +21,7 @@ worker.onmessage = ({ data }) => {
     ready = true;
     $("engine-state").textContent = "Ready";
     $("engine-detail").textContent = `Loaded in ${data.seconds.toFixed(0)} s`;
-    $("version-line").textContent = `Exam Generator ${data.spec.version}, running in your browser.`;
+    $("version-line").textContent = `Master Test Web ${data.spec.version}: MasterTest Generator running in your browser.`;
     buildForm(data.spec);
     update();
   } else if (data.type === "error") {
@@ -232,7 +232,7 @@ function buildForm(spec) {
   $("password-box").append(
     el("label", { class: "bubble" }, pw, el("span", {},
       el("span", { class: "name" }, "Protect the answer key with a password", el("span", { class: "opt-name", text: "--password" })),
-      el("span", { class: "help", text: "ExamMaster asks for it when it scans the key. Use four or more random words." }))),
+      el("span", { class: "help", text: "MasterTest Marker asks for it when it scans the key. Use four or more random words." }))),
     pwText);
 }
 
@@ -252,7 +252,7 @@ function update() {
   const usePw = $("use-password") && $("use-password").checked;
   const pwOk = !usePw || $("password").value.length > 0;
   $("make").disabled = !(ready && !running && exportFile && (classList || blanks > 0) && pwOk);
-  $("make").title = !ready ? "Exam Generator is still loading" : !exportFile ? "Choose a quiz export first"
+  $("make").title = !ready ? "Master Test Web is still loading" : !exportFile ? "Choose a quiz export first"
     : !(classList || blanks > 0) ? "Choose a class list or a number of blank cards" : !pwOk ? "Type the password" : "";
 }
 
@@ -333,7 +333,7 @@ function splitLine(line) {
 
 $("save-options").addEventListener("click", () => {
   const args = allArgs();
-  const lines = ["# Exam Generator options (use with the desktop program as @options.txt)"];
+  const lines = ["# MasterTest Generator options (use with the desktop program as @options.txt)"];
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith("-") && i + 1 < args.length && !args[i + 1].startsWith("--")) {
       lines.push(`${args[i]} ${quote(args[i + 1])}`); i++;

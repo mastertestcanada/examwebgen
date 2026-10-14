@@ -1,9 +1,10 @@
-# Exam Generator for the browser
+# Master Test Web
 
-Version 0.3.8 of [Exam Generator](https://github.com/mastertestcanada/examgenerator),
-built to run entirely in a web browser. Teachers choose a Canvas quiz export (and a
-class list), set the options, and download a zip of exams, answer cards, the
-answer key and attendance sheet for marking with ExamMaster.
+Version 0.3.9 of Master Test Web: [MasterTest Generator](https://github.com/mastertestcanada/examgenerator)
+built to run entirely in a web browser (MasterTest.ca). Teachers choose a Canvas
+quiz export (and a class list), set the options, and download a zip of exams,
+answer cards, the answer key and attendance sheet for marking with the
+MasterTest Marker app.
 
 Nothing is uploaded or stored: the page runs the program inside the browser tab
 with [Pyodide](https://pyodide.org) (Python compiled to WebAssembly), the chosen
@@ -29,20 +30,20 @@ The first visit downloads about 21 MB, which the browser then caches.
 
 | Path | What it is |
 |---|---|
-| `index.html`, `app.js`, `worker.js` | The page. Its form is built from the program's own option list. |
-| `app-<version>.zip` | Exam Generator itself, its answer-card instructions, images and the DejaVu Sans fallback font. |
+| `index.html`, `app.js`, `worker.js`, `mastertest-logo.png` | The page. Its form is built from the program's own option list. |
+| `app-<version>.zip` | MasterTest Generator itself, its answer-card instructions, images and the DejaVu Sans fallback font. |
 | `pyodide/` | Pyodide (Python for the browser) with lxml, Pillow, cryptography and fontTools. |
 | `wheels/` | reportlab, pypdf and segno from PyPI. |
 | `fonts/` | Atkinson Hyperlegible for the page (SIL Open Font License). |
 | `build.json` | What the page loads, and the versions. |
-| `CHANGELOG.md` | Changes to Exam Generator and ExamMaster. |
+| `CHANGELOG.md` | Changes to MasterTest Generator and MasterTest Marker. |
 
 ## Updates
 
-Do not edit these files here: they are built from the Exam Generator repository
-with `tools/build_web.py`, and each Exam Generator version is committed here as
-one commit ("Exam Generator x.y.z"). The output is identical to the desktop
-program's; the Exam Generator test suite checks it on every push.
+Do not edit these files here: they are built from the MasterTest Generator
+repository with `tools/build_web.py`, and each version is committed here as one
+commit ("Master Test Web x.y.z"). The output is identical to the desktop
+program's; the MasterTest Generator test suite checks it on every push.
 
 Support: support@mastertest.ca
 
