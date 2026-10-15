@@ -1,4 +1,4 @@
-// Runs MasterTest Generator (Python) inside the browser with Pyodide. Everything happens in this
+// Runs MasterTest Builder (Python) inside the browser with Pyodide. Everything happens in this
 // worker's memory: the files the page sends are written to an in-memory file system, the
 // program runs, and the result comes back as a zip. Nothing is sent anywhere.
 "use strict";
@@ -19,11 +19,11 @@ async function load() {
   post("status", { text: "Loading PDF and image libraries…" });
   const wheels = build.wheels.map((w) => new URL("wheels/" + w, self.location.href).href);
   await py.loadPackage([...build.packages, ...wheels], { messageCallback: () => {}, errorCallback: (m) => post("log", { text: m, stream: "stderr" }) });
-  post("status", { text: "Loading MasterTest Generator…" });
+  post("status", { text: "Loading MasterTest Builder…" });
   const app = await (await fetch(build.app)).arrayBuffer();
   py.unpackArchive(app, "zip", { extractDir: "/app" });
   py.runPython("import sys; sys.path.insert(0, '/app')");
-  const spec = JSON.parse(py.runPython("from examgen import web_runner; web_runner.spec()"));
+  const spec = JSON.parse(py.runPython("from mtbuilder import web_runner; web_runner.version()"));
   post("ready", { spec, seconds: (performance.now() - t0) / 1000 });
 }
 
@@ -31,7 +31,7 @@ async function run({ files, argv, password }) {
   const t0 = performance.now();
   py.setStdout({ batched: (text) => post("log", { text, stream: "stdout" }) });
   py.setStderr({ batched: (text) => post("log", { text, stream: "stderr" }) });
-  py.runPython("from examgen import web_runner; web_runner.reset()");
+  py.runPython("from mtbuilder import web_runner; web_runner.reset()");
   for (const f of files) {
     const path = "/work/in/" + f.name;
     if (f.unzip) {
@@ -61,7 +61,7 @@ async function run({ files, argv, password }) {
 
 // Reads an export as soon as it is chosen: which quizzes it holds, then what one of them holds.
 function inspect({ name, data }) {
-  py.runPython("from examgen import web_runner; web_runner.reset()");
+  py.runPython("from mtbuilder import web_runner; web_runner.reset()");
   py.FS.writeFile("/work/in/" + name, new Uint8Array(data));
   py.globals.set("web_name", name);
   post("quizzes", { name, result: JSON.parse(py.runPython("web_runner.quizzes(web_name)")) });
@@ -70,7 +70,7 @@ function inspect({ name, data }) {
 function summary({ name, number, data }) {
   // the export may have been cleared by a run since it was inspected
   if (data && !py.FS.analyzePath("/work/in/" + name).exists) {
-    py.runPython("from examgen import web_runner; web_runner.reset()");
+    py.runPython("from mtbuilder import web_runner; web_runner.reset()");
     py.FS.writeFile("/work/in/" + name, new Uint8Array(data));
   }
   py.globals.set("web_name", name);
@@ -89,7 +89,7 @@ function classlist({ name, data, id, qr }) {
     py.globals.set("web_path", path);
     py.globals.set("web_id", id || "");
     py.globals.set("web_qr", qr || "");
-    post("classlist", { name, result: JSON.parse(py.runPython("from examgen import web_runner; web_runner.classlist(web_path, web_id, web_qr)")) });
+    post("classlist", { name, result: JSON.parse(py.runPython("from mtbuilder import web_runner; web_runner.classlist(web_path, web_id, web_qr)")) });
   } finally {
     py.FS.unlink(path);
   }

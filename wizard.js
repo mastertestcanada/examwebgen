@@ -1,8 +1,8 @@
 // MasterTest Web: the step-by-step page. Step 1 collects the quiz export, an optional class list,
 // the question pool, paper size and layout, variants and blank cards; Generate asks for an optional
-// answer-key password, runs MasterTest Generator in the worker (in this tab's memory) and step 2
+// answer-key password, runs MasterTest Builder in the worker (in this tab's memory) and step 2
 // hands over the zip and the exam configuration (an options file that the command line reads
-// too, and that "Load Previous Exam Config" reads back). The full set of options is on advanced.html.
+// too, and that "Load Previous Exam Config" reads back)..
 "use strict";
 
 const $ = (id) => document.getElementById(id);
@@ -746,7 +746,7 @@ function setPrintOptions(got) {
   any = any || aciWant !== "standard";
   $("po-option-columns").value = got["--option-columns"] || "1";
   for (const [id, opt] of Object.entries(PO_FLAGS)) $(id).checked = !!got[opt];
-  $("po-pad").checked = !got["--no-option-pad"];          // --pad-options (before 0.4.3) is now the default
+  $("po-pad").checked = !got["--no-option-pad"];
   any = any || got["--no-option-pad"] || got["--no-option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
   if (any) $("print-details").open = true;
   return any;
@@ -952,7 +952,7 @@ function configText(seed) {
     `# MasterTest exam configuration, saved by ${$("version-line").textContent} on ${new Date().toISOString().slice(0, 10)}`,
     `# Quiz: ${lastArgs.title}` + (lastArgs.quiz ? ` (quiz ${lastArgs.quiz.number} of ${lastArgs.quiz.of} in ${lastArgs.quiz.file})` : ""),
     "# To use it again: Load Previous Exam Config in MasterTest Web, or on a computer:",
-    `#   python exam_generator.py <quiz export.zip>${lastArgs.classList ? " --class-list <class list.csv>" : ""} @<this file>`,
+    `#   python mastertest_builder.py <quiz export.zip>${lastArgs.classList ? " --class-list <class list.csv>" : ""} @<this file>`,
   ];
   if (seed && !o.includes("--seed")) head.push(`# This run used --seed ${seed}; add that line to print exactly the same exams again.`);
   return head.join("\n") + "\n\n" + lines.join("\n") + "\n";
@@ -1016,8 +1016,7 @@ function loadConfig(name, textIn) {
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
-    if (o === "--use-item-banks") continue;   // the default since 0.3.18
-    if (["--password", "--ignore-item-banks", "--randomize-seats", "--pad-options", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
+    if (["--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
     if (o === "--option-dot") continue;   // the default
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
@@ -1065,8 +1064,8 @@ function loadConfig(name, textIn) {
   if (cls.id || cls.qr.length) parts.push("class list options");
   if (cls.att.length || cls.sort || cls.orient !== "portrait") parts.push("attendance sheet options");
   if (setPrintOptions(got)) parts.push("print options");
-  // page options (old spellings too) and advanced options
-  const canon = (v) => v.toLowerCase().replace(/[^a-z]/g, "");
+  // page options and advanced options
+  const canon = (v) => v.trim().toLowerCase();
   const wanted = csvSplit(got["--page-options"] || "").map(canon);
   for (const box of document.querySelectorAll("#page-opts input")) box.checked = wanted.includes(canon(box.dataset.po));
   const unknownPages = wanted.filter((w) => ![...document.querySelectorAll("#page-opts input")].some((b) => canon(b.dataset.po) === w));
