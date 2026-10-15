@@ -131,6 +131,7 @@ function smooth() {
 
 function selectLayout(id, focus) {
   layout = LAYOUTS.find((l) => l.id === id);
+  if (typeof showPrintDefaults === "function" && $("po-calc")) showPrintDefaults();
   for (const b of $("layouts").children) {
     const on = b.dataset.id === id;
     b.setAttribute("aria-checked", String(on));
@@ -260,8 +261,10 @@ function showQuiz() {
       notes.push(`The quiz draws ${s.per_exam_with_banks} of them from question groups; every question is printed unless you alter the question pool.`);
     if (s.omitted) notes.push(`${s.omitted} question${s.omitted === 1 ? " was" : "s were"} left out because ${s.omitted === 1 ? "it" : "they"} cannot be printed: ` +
       s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; "));
-    if (!s.merged1_ok) notes.push(`A question has ${s.max_options} options, so the merged layouts (at most 6 in one column, 4 in two) are not available.`);
-    else if (!s.merged_ok) notes.push(`A question has ${s.max_options} options, so Merged Two Column (at most 4) is not available; Merged One Column is.`);
+    if (!s.merged1_ok) notes.push(`At least one question has ${s.max_options} options, so the Merged One Column and Merged Two Column Layouts are not available. ` +
+      "If you want to use them make sure multiple-choice questions have no more than 6 options (4 for Merged Two Column).");
+    else if (!s.merged_ok) notes.push(`At least one question has ${s.max_options} options, so the Merged Two Column Layout is not available. ` +
+      "If you want to use this layout make sure multiple-choice questions have no more than 4 options.");
     $("sum-note").textContent = notes.join(" ");
     $("sum-note").hidden = !notes.length;
   }
@@ -374,15 +377,16 @@ function showClass() {
     : cls.state === "error" ? cls.message : "";
   st.hidden = !st.textContent;
   const usable = r && r.columns && r.columns.length;
+  // the grey box: the details once read, and the options (also after an error they can fix,
+  // such as no student-number column)
+  $("class-box").hidden = !usable;
   $("class-summary").hidden = !(cls.state === "ready");
-  // the options stay open after an error the options can fix (such as no student-number column)
-  $("class-opts").hidden = !usable;
   if (cls.state === "ready") {
     $("cls-n").textContent = r.students;
     $("cls-unit").textContent = r.students === 1 ? "student" : "students";
     $("cls-title").textContent = classFile.name;
     $("cls-id").textContent = r.number_column;
-    $("cls-id-how").textContent = cls.id ? "(chosen in Class list options)" : "(found from its heading)";
+    $("cls-id-how").textContent = cls.id ? "(chosen in Class list options)" : "(found automatically)";
     $("cls-qr").textContent = r.qr_fields.map((f) => (f === "Card serial" ? "card serial" : f)).join(", ");
     $("cls-cols").textContent = r.columns.join(", ");
     const notes = [];
@@ -551,6 +555,84 @@ $("att-sort").addEventListener("change", () => { cls.sort = $("att-sort").value;
 $("att-dir").addEventListener("change", () => { cls.desc = $("att-dir").value === "desc"; update(); });
 for (const o of document.querySelectorAll('input[name="orient"]')) o.addEventListener("change", () => { if (o.checked) cls.orient = o.value; update(); });
 
+// ------------------------------------------------------------------ print options
+
+const PO = {
+  margin: ["po-margin", "--margin"], font: ["po-font", "--font"], fontSize: ["po-font-size", "--font-size"],
+  spacing: ["po-spacing", "--question-spacing"], optionFont: ["po-option-font", "--option-font"],
+  optionSize: ["po-option-size", "--option-font-size"], calc: ["po-calc", "--calculated-instructions"],
+  fill: ["po-fill", "--fill-blank-instructions"], blank: ["po-blank", "--fill-blank-text"],
+};
+const PO_FLAGS = { "po-pad": "--pad-options", "po-points": "--show-points", "po-noinstr": "--no-quiz-instructions" };
+const STANDARD_CALC = "Write your answer in the boxes on the answer card: one digit, minus sign or decimal point per box.";
+const STANDARD_FILL = "Write your answer in the box on the answer card.";
+
+function printArgs() {
+  const a = [];
+  for (const [id, opt] of Object.values(PO)) {
+    const v = $(id).value.trim();
+    if (v) a.push(opt, v);
+  }
+  if (document.querySelector('input[name="po-marker"]:checked').value === "nodot") a.push("--no-option-dot");
+  const cols = parseInt($("po-option-columns").value, 10);
+  if (cols > 1) a.push("--option-columns", String(cols));
+  for (const [id, opt] of Object.entries(PO_FLAGS)) if ($(id).checked) a.push(opt);
+  return a;
+}
+
+// why Generate cannot go ahead with these print options, or ""
+function printProblem() {
+  const fs = $("po-font-size").value.trim(), os = $("po-option-size").value.trim();
+  if (fs && !(Number(fs) >= 4 && Number(fs) <= 72)) return "Print Options: the font size must be from 4 to 72 points.";
+  if (os && !(Number(os) >= 4 && Number(os) <= 72)) return "Print Options: the option font size must be from 4 to 72 points.";
+  const cols = $("po-option-columns").value.trim();
+  if (cols && !(Number.isInteger(Number(cols)) && Number(cols) >= 1 && Number(cols) <= 6)) return "Print Options: option columns must be from 1 to 6.";
+  for (const [id, what] of [["po-margin", "margins"], ["po-spacing", "question spacing"]]) {
+    const v = $(id).value.trim();
+    if (v && !/^\d+(\.\d+)?\s*(in|cm|mm|pt)?$/i.test(v)) return `Print Options: write the ${what} as a number and a unit, such as 0.75in, 2cm, 20mm or 54pt.`;
+    if (id === "po-margin" && /^\d+(\.\d+)?$/.test(v) && Number(v) < 5) return `Print Options: a margin of ${v} without a unit is ${v} points. Did you mean ${v}in or ${v}cm?`;
+  }
+  return "";
+}
+
+// the defaults shown in the boxes depend on the layout
+function showPrintDefaults() {
+  const merged = layout.id.startsWith("merged");
+  $("po-font-size").placeholder = merged ? "9" : "11";
+  $("po-font-size-hint").textContent = `points (default ${merged ? "9 on merged sheets" : "11"})`;
+  $("po-calc").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : STANDARD_CALC;
+  $("po-fill").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : STANDARD_FILL;
+  $("po-pad").closest("label").querySelector(".sub").textContent = merged
+    ? "Merged sheets print four bubbles (A–D) for every multiple-choice question, six (A–F) for questions with five or six options."
+    : "Answer cards print six bubbles (A–F) for every multiple-choice question, not one per printed option.";
+}
+
+for (const el of document.querySelectorAll("#print-details input, #print-details select")) {
+  el.addEventListener("input", update);
+  el.addEventListener("change", update);
+}
+
+function setPrintOptions(got) {
+  let any = false;
+  for (const [id, opt] of Object.values(PO)) {
+    if (!(opt in got)) { $(id).value = ""; continue; }
+    let v = got[opt] === "" && opt !== "--margin" ? "none" : got[opt];
+    if (id === "po-font" || id === "po-option-font") {
+      const m = [...$(id).options].find((o) => o.value.toLowerCase() === v.toLowerCase() || o.text.toLowerCase() === v.toLowerCase());
+      if (m) v = m.value; else { $(id).append(new Option(v, v)); }   // a font file or name from the desktop
+      if (id === "po-font" && v.toLowerCase() === "helvetica") v = "";
+    }
+    $(id).value = v;
+    any = true;
+  }
+  for (const r of document.querySelectorAll('input[name="po-marker"]')) r.checked = r.value === (got["--no-option-dot"] ? "nodot" : "dot");
+  $("po-option-columns").value = got["--option-columns"] || "1";
+  for (const [id, opt] of Object.entries(PO_FLAGS)) $(id).checked = !!got[opt];
+  any = any || got["--no-option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
+  if (any) $("print-details").open = true;
+  return any;
+}
+
 // ------------------------------------------------------------------ options
 
 for (const b of document.querySelectorAll("[data-step]")) {
@@ -586,7 +668,7 @@ function update() {
   document.querySelector('[data-step="blanks"][data-by="-1"]').disabled = b <= 0;
   const quizReady = quiz.state === "ready";
   const poolProblem = quizReady ? showPool() : "";
-  const classIssue = classProblem();
+  const classIssue = classProblem() || printProblem();
   const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem && !classIssue;
   $("generate").disabled = !ok;
   $("why").textContent = !exportFile ? "Choose the quiz export to continue."
@@ -604,6 +686,7 @@ function options() {
   if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
   if (classFile && mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
   a.push(...classArgs());
+  a.push(...printArgs());
   if (blanks() > 0) a.push("--blank-cards", String(blanks()));
   if (!extras.includes("--use-item-banks")) a.push(...poolArgs());
   return [...a, ...extras];
@@ -773,11 +856,14 @@ function loadConfig(name, textIn) {
   const t = tokens.flatMap((x) => (x.startsWith("--") && x.includes("=") ? [x.slice(0, x.indexOf("=")), x.slice(x.indexOf("=") + 1)] : [x]));
   const got = {}, rest = [], ignored = [];
   const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
-    "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation"]);
+    "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation",
+    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-font-size", "--option-columns",
+    "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text"]);
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
-    if (o === "--password" || o === "--randomize-seats") { got[o] = true; continue; }
+    if (["--password", "--randomize-seats", "--pad-options", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
+    if (o === "--option-dot") continue;   // the default
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
     rest.push(o);
@@ -821,6 +907,7 @@ function loadConfig(name, textIn) {
   if (cls.randomize) parts.push($("seat-labels").value ? "seats from seat labels" : "randomized seats");
   if (cls.id || cls.qr.length) parts.push("class list options");
   if (cls.att.length || cls.sort || cls.orient !== "portrait") parts.push("attendance sheet options");
+  if (setPrintOptions(got)) parts.push("print options");
   if (sortBy.length > 1) parts.push(`sorted by ${sortBy[0]} only (the page sorts by one column)`);
   let msg = `Loaded ${name}: ${parts.join(", ")}.`;
   if (extras.length) msg += ` Also used when generating: ${extras.join(" ")}.`;
@@ -901,6 +988,8 @@ $("config-file").addEventListener("change", async () => {
 $("config-forget").addEventListener("click", () => {
   extras = []; pending = null; configName = "";
   Object.assign(cls, { id: "", qr: [], randomize: false, att: [], sort: "", desc: false, orient: "portrait" });
+  setPrintOptions({});
+  $("print-details").open = false;
   $("seat-labels").value = "";
   if (classFile) { cls.state = "reading"; showClass(); if (ready) inspectClass(); }
   $("config-state").hidden = true;
@@ -1069,4 +1158,5 @@ worker.onmessage = ({ data }) => {
 };
 
 buildLayouts();
+showPrintDefaults();
 update();
