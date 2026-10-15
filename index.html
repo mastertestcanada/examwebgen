@@ -202,7 +202,6 @@ footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--rule
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1.5rem; }
 footer a { color: var(--muted); }
 
-
 /* title row and the configuration loader */
 .title-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .4rem 1rem; }
 .title-row h1 { margin-right: auto; }
@@ -556,40 +555,6 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       </div>
     </section>
 
-    <section class="block" aria-labelledby="exams-h">
-      <h2 id="exams-h">Exams for the class list</h2>
-      <p class="hint" id="exams-hint">Choose a class list to use these.</p>
-      <fieldset id="mode" disabled>
-        <legend hidden>Exams for the class list</legend>
-        <div class="choices">
-          <label class="bubble"><input type="radio" name="mode" value="unique" checked>
-            <span><span class="label">A unique exam for each student</span><span class="sub">Every student gets their own order of questions and answers.</span></span></label>
-          <div>
-            <label class="bubble"><input type="radio" name="mode" value="variants">
-              <span><span class="label">Variants</span><span class="sub">A few versions of the exam, handed out among the students.</span></span></label>
-            <div class="variants-count">
-              <span id="variants-label">Number of variants</span>
-              <span class="stepper">
-                <button type="button" data-step="variants" data-by="-1" aria-label="Fewer variants" disabled>−</button>
-                <input type="number" id="variants" min="1" max="99" value="2" inputmode="numeric" aria-labelledby="variants-label" disabled>
-                <button type="button" data-step="variants" data-by="1" aria-label="More variants" disabled>+</button>
-              </span>
-            </div>
-          </div>
-        </div>
-      </fieldset>
-    </section>
-
-    <section class="block" aria-labelledby="blanks-h">
-      <h2 id="blanks-h">Blank cards</h2>
-      <p class="hint">Extra exams with blank answer cards, for students not on the class list. Students write and bubble in their own number.</p>
-      <span class="stepper">
-        <button type="button" data-step="blanks" data-by="-1" aria-label="Fewer blank cards">−</button>
-        <input type="number" id="blanks" min="0" max="999" value="0" inputmode="numeric" aria-labelledby="blanks-h">
-        <button type="button" data-step="blanks" data-by="1" aria-label="More blank cards">+</button>
-      </span>
-    </section>
-
     <section class="block" aria-label="Print options">
       <details class="pool print-opts" id="print-details">
         <summary>Print Options <span class="summary-note">Change margins, fonts, spacing and instructional text.</span></summary>
@@ -703,6 +668,39 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         </div>
       </details>
     </section>
+
+    <section class="block" aria-labelledby="exams-h">
+      <h2 id="exams-h">How should we generate these exams?</h2>
+      <p class="hint" id="exams-hint">Choose a class list to use these.</p>
+      <fieldset id="mode" disabled>
+        <legend hidden>Exams for the class list</legend>
+        <div class="choices">
+          <label class="bubble"><input type="radio" name="mode" value="unique" checked>
+            <span><span class="label">A unique exam for each student</span><span class="sub">Every student gets their own order of questions and answers.</span></span></label>
+          <div>
+            <label class="bubble"><input type="radio" name="mode" value="variants">
+              <span><span class="label">Variants</span><span class="sub">A few versions of the exam, handed out among the students.</span></span></label>
+            <div class="variants-count">
+              <span id="variants-label">Number of variants</span>
+              <span class="stepper">
+                <button type="button" data-step="variants" data-by="-1" aria-label="Fewer variants" disabled>−</button>
+                <input type="number" id="variants" min="1" max="99" value="2" inputmode="numeric" aria-labelledby="variants-label" disabled>
+                <button type="button" data-step="variants" data-by="1" aria-label="More variants" disabled>+</button>
+              </span>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+      <h3 class="sub-h" id="blanks-h">How many cards should we make for students not in the class list?</h3>
+      <p class="hint">You can also use this if you don't want to upload a class list. Students can write their name by hand and either bubble in or write their student number.</p>
+      <span class="stepper">
+        <button type="button" data-step="blanks" data-by="-1" aria-label="Fewer blank cards">−</button>
+        <input type="number" id="blanks" min="0" max="999" value="0" inputmode="numeric" aria-labelledby="blanks-h">
+        <button type="button" data-step="blanks" data-by="1" aria-label="More blank cards">+</button>
+      </span>
+    </section>
+
+
 
     <div class="actions">
       <button type="button" class="primary" id="generate" disabled>Generate</button>

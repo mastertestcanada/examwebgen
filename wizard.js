@@ -776,7 +776,7 @@ function update() {
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
   $("exams-hint").textContent = hasClass ? "How the exams for the students on the class list differ."
-    : "Choose a class list to use these.";
+    : "A unique exam for each student and variants need a class list.";
   const variantsOn = hasClass && mode() === "variants";
   $("variants").disabled = !variantsOn;
   for (const b of document.querySelectorAll('[data-step="variants"]')) b.disabled = !variantsOn;
