@@ -73,6 +73,10 @@ header { display: flex; flex-wrap: wrap; justify-content: space-between; align-i
 .ignore-row.off .check { opacity: .45; cursor: not-allowed; }
 .engine { font-size: .85rem; color: var(--muted); text-align: right; }
 .engine strong { color: var(--ink); }
+.top-right { display: flex; flex-direction: column; align-items: flex-end; gap: .25rem; }
+.ui-lang { display: flex; align-items: center; gap: .35rem; font-size: .85rem; color: var(--muted); }
+.ui-lang button { font: inherit; background: none; border: 0; padding: .1rem .2rem; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.ui-lang button[aria-pressed="true"] { color: var(--ink); font-weight: 700; text-decoration: none; cursor: default; }
 
 /* the steps of the wizard, drawn as answer bubbles */
 ol.steps { list-style: none; display: flex; gap: .5rem 1.75rem; padding: 1.1rem 0; margin: 1.25rem 0 0;
@@ -361,6 +365,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
   .sheet::before, .sheet::after { top: .45rem; }
   .sheet > .marks::before, .sheet > .marks::after { bottom: .45rem; }
   :root { --mark: 10px; }
+  .top-right { align-items: flex-start; }
   .engine { text-align: left; }
   .done-panel { grid-template-columns: 1fr; }
   .banks { grid-template-columns: 1fr; }
@@ -381,7 +386,12 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       <img class="logo" src="mastertest-logo.png" alt="MasterTest.ca" width="260" height="26">
       <span class="product">MasterTest Web <small class="version" id="version-top"></small></span>
     </div>
-    <div class="engine" role="status" aria-live="polite"><strong id="engine-state">Starting</strong> <span id="engine-detail">· loading the exam maker (about 21 MB the first time)</span></div>
+    <div class="top-right">
+      <div class="ui-lang" role="group" aria-label="Language / Langue" data-no-tr>
+        <button type="button" data-lang="en" lang="en">English</button><span aria-hidden="true">|</span><button type="button" data-lang="fr" lang="fr">Français</button>
+      </div>
+      <div class="engine" role="status" aria-live="polite"><strong id="engine-state">Starting</strong> <span id="engine-detail">· loading the exam maker (about 21 MB the first time)</span></div>
+    </div>
   </header>
 
   <ol class="steps" aria-label="Steps">
@@ -702,6 +712,14 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             </select></span>
             <span class="grid-label"></span>
             <span class="pool-of">How much of each QR code can be smudged, folded or written on and still read. Higher levels make denser codes; L helps cards with many questions or extra QR fields fit.</span>
+            <span class="grid-label" id="adv-csv-label">answer_key.csv:</span>
+            <span class="enclosed-row">
+              <span role="radiogroup" aria-labelledby="adv-csv-label" class="inline-radios">
+                <label class="bubble inline"><input type="radio" name="adv-csv" value="comma" checked><span class="label">,</span><span class="sub" id="adv-csv-comma-sub">commas, 0.5</span></label>
+                <label class="bubble inline"><input type="radio" name="adv-csv" value="semicolon"><span class="label">;</span><span class="sub" id="adv-csv-semicolon-sub">semicolons, 0,5</span></label>
+              </span>
+              <span class="pool-of" id="adv-csv-hint">as the spreadsheet that opens it expects: semicolons for French Excel. The default follows the print language.</span>
+            </span>
             <label for="adv-seed">Seed:</label>
             <span><input type="text" id="adv-seed" class="text" inputmode="numeric" placeholder="random each time" spellcheck="false"> <span class="pool-of">the same seed, files and options print exactly the same exams again</span></span>
           </div>
@@ -788,6 +806,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
     <span>Nothing is stored on this computer or sent to a server.</span>
   </footer>
 </main>
+<script src="i18n.js"></script>
 <script src="wizard.js"></script>
 </body>
 </html>

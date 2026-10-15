@@ -36,7 +36,7 @@ async function cjkFont(region) {
   const entry = (build.cjk || {})[region];
   if (!entry) return null;
   const names = { sc: "Simplified Chinese", tc: "Traditional Chinese", jp: "Japanese", kr: "Korean" };
-  post("progress", { text: `Downloading the ${names[region]} font (${Math.round(entry.bytes / 1e6)} MB; only the first time)…` });
+  post("progress", { region, mb: Math.round(entry.bytes / 1e6), text: `Downloading the ${names[region]} font (${Math.round(entry.bytes / 1e6)} MB; only the first time)…` });
   const response = await fetch(entry.file);
   if (!response.ok) throw new Error(`The ${names[region]} font could not be downloaded (${response.status}).`);
   let data = new Uint8Array(await response.arrayBuffer());

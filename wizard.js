@@ -33,33 +33,33 @@ const svg = (body, vb = "0 0 100 70") => `<svg viewBox="${vb}" aria-hidden="true
 
 const LAYOUTS = [
   {
-    id: "booklet", name: "Booklet + Answer Card", size: ["letter", "a4"],
-    desc: (p) => `Questions in a printed booklet, answers on a separate full-page card. Up to 100 answers per card. ${p.prints}`,
+    id: "booklet", name: () => tr("Booklet + Answer Card"), size: ["letter", "a4"],
+    desc: (p) => tr("Questions in a printed booklet, answers on a separate full-page card. Up to 100 answers per card. {prints}", p),
     pic: svg(page(14, 6, 38, 52) + [14, 20, 26, 34, 40, 46].map((y, i) => line(19, y, i % 3 === 2 ? 18 : 27)).join("") +
       page(46, 12, 38, 52) + [20, 27, 34, 41, 48, 55].map((y, i) => bubbles(52, y, 4, (i * 3) % 4) + bubbles(71, y, 3, i % 3)).join("")),
   },
   {
-    id: "single", name: "Single Page Quiz", size: ["letter-single-page", "a4-single-page"],
-    desc: (p) => `A short quiz on one ${p.sheet}: the answer area at the top, the questions below.`,
+    id: "single", name: () => tr("Single Page Quiz"), size: ["letter-single-page", "a4-single-page"],
+    desc: (p) => tr("A short quiz on one {sheet}: the answer area at the top, the questions below.", p),
     pic: svg(page(30, 4, 40, 60) + [11, 16].map((y, i) => bubbles(35, y, 4, i + 1) + bubbles(54, y, 3, i)).join("") +
       `<path d="M34 21h32" stroke="currentColor" stroke-width=".8"/>` + [27, 32, 39, 44, 51, 56].map((y, i) => line(35, y, i % 2 ? 20 : 28)).join("")),
   },
   {
-    id: "merged1", name: "Merged One Column", size: ["letter-merged", "a4-merged"], columns: 1,
-    desc: (p) => `Each answer beside its question, in one full-width column. Room for wide written answers. ${p.prints}`,
+    id: "merged1", name: () => tr("Merged One Column"), size: ["letter-merged", "a4-merged"], columns: 1,
+    desc: (p) => tr("Each answer beside its question, in one full-width column. Room for wide written answers. {prints}", p),
     pic: svg(page(28, 4, 44, 60) + [14, 23, 32, 41, 50].map((y, i) => line(32, y, 18) +
       (i % 2 ? cell(54, y, 14) : bubbles(55.5, y, 4, (i + 2) % 4))).join("")),
   },
   {
-    id: "merged2", name: "Merged Two Column", size: ["letter-merged", "a4-merged"],
-    desc: (p) => `Each answer beside its question, in two columns. About 30 short questions per page. ${p.prints}`,
+    id: "merged2", name: () => tr("Merged Two Column"), size: ["letter-merged", "a4-merged"],
+    desc: (p) => tr("Each answer beside its question, in two columns. About 30 short questions per page. {prints}", p),
     pic: svg(page(28, 4, 44, 60) + `<path d="M50 10v50" stroke="currentColor" stroke-width=".6" opacity=".5"/>` +
       [14, 22, 30, 38, 46, 54].map((y, i) => line(31, y, 7) + (i === 2 ? cell(39.5, y, 9) : bubbles(40.2, y, 2, i % 2)) +
         line(52, y, 7) + (i === 4 ? cell(60.5, y, 9) : bubbles(61.2, y, 2, (i + 1) % 2))).join("")),
   },
   {
-    id: "tabloid", name: (p) => p.big + " Booklet", size: ["tabloid-booklet", "a3-booklet"],
-    desc: (p) => `${p.bigSheets} printed on both sides and folded into ${p.booklet}, with a folded answer card.`,
+    id: "tabloid", name: (p) => tr("{big} Booklet", p), size: ["tabloid-booklet", "a3-booklet"],
+    desc: (p) => tr("{bigSheets} printed on both sides and folded into {booklet}, with a folded answer card.", p),
     pic: svg(page(8, 12, 84, 50) + `<path d="M50 12v50" stroke="currentColor" stroke-width="1" stroke-dasharray="2.5 2"/>` +
       [20, 26, 32, 38, 44, 50].map((y, i) => line(13, y, i % 3 === 2 ? 20 : 30) + line(55, y, i % 3 === 1 ? 22 : 31)).join("")),
   },
@@ -72,7 +72,9 @@ const PAPER = {
   iso: { prints: "Prints on A4 paper.", sheet: "A4 sheet", big: "A3",
     bigSheets: "A3 sheets", booklet: "an A4 booklet" },
 };
-const text = (v) => (typeof v === "function" ? v(PAPER[paper]) : v);
+// the paper's words in the page's language
+const paperText = () => Object.fromEntries(Object.entries(PAPER[paper]).map(([k, v]) => [k, tr(v)]));
+const text = (v) => (typeof v === "function" ? v(paperText()) : v);
 const layoutName = (l) => text(l.name);
 const layoutArgs = (l) => ["--page-size", l.size[paper === "iso" ? 1 : 0], ...(l.columns === 1 ? ["--columns", "1"] : [])];
 
@@ -154,7 +156,7 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
   const input = $(inputId), drop = $(dropId);
   const show = (f) => {
     drop.classList.toggle("chosen", !!f);
-    $(stateId).textContent = f ? `${f.name} (${f.size < 1024 * 1024 ? Math.max(1, Math.round(f.size / 1024)) + " KB" : (f.size / 1048576).toFixed(1) + " MB"})` : empty;
+    $(stateId).textContent = f ? `${f.name} (${f.size < 1024 * 1024 ? Math.max(1, Math.round(f.size / 1024)) + (uiLang === "fr" ? " Ko" : " KB") : (f.size / 1048576).toFixed(1) + (uiLang === "fr" ? " Mo" : " MB")})` : empty();
     onFile(f);
     update();
   };
@@ -170,7 +172,7 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
   return () => { input.value = ""; show(null); };
 }
 
-const clearExport = filePicker("export", "export-drop", "export-state", "Choose or drop the .zip file", (f) => {
+const clearExport = filePicker("export", "export-drop", "export-state", () => tr("Choose or drop the .zip file"), (f) => {
   exportFile = f;
   cjkRegion = null;     // a new export: follow its text again
   Object.assign(quiz, { state: f ? "reading" : "none", list: [], number: null, summary: null, message: "" });
@@ -231,8 +233,8 @@ function showQuiz() {
   $("quiz").hidden = quiz.state === "none";
   const status = $("quiz-status");
   status.className = "quiz-status" + (quiz.state === "error" ? " bad" : "");
-  status.textContent = { reading: ready ? "Reading the export…" : "The export will be read once the exam maker has loaded.",
-    loading: "Reading the quiz…", error: quiz.message }[quiz.state] || "";
+  status.textContent = { reading: ready ? tr("Reading the export…") : tr("The export will be read once the exam maker has loaded."),
+    loading: tr("Reading the quiz…"), error: quiz.message }[quiz.state] || "";
   status.hidden = !status.textContent;
   // the list of quizzes, when there is more than one
   const many = quiz.list.length > 1 && quiz.state !== "error";
@@ -256,18 +258,16 @@ function showQuiz() {
   $("pool").hidden = !(quiz.state === "ready" && s);
   if (quiz.state === "ready" && s) {
     $("sum-n").textContent = s.questions;
-    $("sum-unit").textContent = s.questions === 1 ? "question" : "questions";
+    $("sum-unit").textContent = trn(s.questions, "question", "questions");
     $("sum-title").textContent = s.title;
-    $("sum-kinds").textContent = Object.entries(s.kinds).map(([k, n]) => `${n} ${k}`).join(", ");
+    $("sum-kinds").textContent = Object.entries(s.kinds).map(([k, n]) => tr("{n} " + k, { n })).join(", ");
     const notes = [];
     if (s.pick_rules.length)
-      notes.push(`Each exam gets ${s.per_exam_with_banks} of them: the quiz's item banks pick some of their questions (“pick N”). Alter the question pool to change this.`);
-    if (s.omitted) notes.push(`${s.omitted} question${s.omitted === 1 ? " was" : "s were"} left out because ${s.omitted === 1 ? "it" : "they"} cannot be printed: ` +
-      s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; "));
-    if (!s.merged1_ok) notes.push(`At least one question has ${s.max_options} options, so the Merged One Column and Merged Two Column Layouts are not available. ` +
-      "If you want to use them make sure multiple-choice questions have no more than 6 options (4 for Merged Two Column).");
-    else if (!s.merged_ok) notes.push(`At least one question has ${s.max_options} options, so the Merged Two Column Layout is not available. ` +
-      "If you want to use this layout make sure multiple-choice questions have no more than 4 options.");
+      notes.push(tr("Each exam gets {per} of them: the quiz's item banks pick some of their questions (“pick N”). Alter the question pool to change this.", { per: s.per_exam_with_banks }));
+    if (s.omitted) notes.push(trn(s.omitted, "{n} question was left out because it cannot be printed: {list}", "{n} questions were left out because they cannot be printed: {list}",
+      { list: s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; ") }));
+    if (!s.merged1_ok) notes.push(tr("At least one question has {n} options, so the Merged One Column and Merged Two Column Layouts are not available. If you want to use them make sure multiple-choice questions have no more than 6 options (4 for Merged Two Column).", { n: s.max_options }));
+    else if (!s.merged_ok) notes.push(tr("At least one question has {n} options, so the Merged Two Column Layout is not available. If you want to use this layout make sure multiple-choice questions have no more than 4 options.", { n: s.max_options }));
     $("sum-note").textContent = notes.join(" ");
     $("sum-note").hidden = !notes.length;
   }
@@ -284,6 +284,8 @@ let cjkFonts = {};        // region -> {file, bytes}: the fonts this site has (b
 let cjkRegion = null;     // the region chosen, or null to follow the quiz
 const quizCjk = () => (quiz.state === "ready" && quiz.summary ? quiz.summary.cjk : null);
 const cjkChosen = () => cjkRegion || quizCjk();
+// a region's name inside a sentence (lower case in French)
+const cjkName = (r) => (uiLang === "fr" ? tr(CJK_NAMES[r]).toLowerCase() : CJK_NAMES[r]);
 
 function showCjk() {
   const found = quizCjk();
@@ -293,10 +295,10 @@ function showCjk() {
   for (const radio of document.querySelectorAll('input[name="cjk"]')) radio.checked = radio.value === r;
   const font = cjkFonts[r];
   $("cjk-hint").textContent = !font
-    ? `This copy of MasterTest Web has no ${CJK_NAMES[r]} font, so these characters will print as “?”.`
-    : `This quiz has ${CJK_NAMES[found]} text` + (r === found ? "" : `; it will be printed in the ${CJK_NAMES[r]} style`) +
-      `. English and other text stays in the font you choose. The ${CJK_NAMES[r]} font (${Math.round(font.bytes / 1e6)} MB) is ` +
-      "downloaded when you generate, the first time only.";
+    ? tr("This copy of MasterTest Web has no {region} font, so these characters will print as “?”.", { region: cjkName(r) })
+    : tr("This quiz has {found} text", { found: cjkName(found) }) + (r === found ? "" : tr("; it will be printed in the {region} style", { region: cjkName(r) })) +
+      tr(". English and other text stays in the font you choose. The {region} font ({mb} MB) is downloaded when you generate, the first time only.",
+        { region: cjkName(r), mb: Math.round(font.bytes / 1e6) });
 }
 for (const radio of document.querySelectorAll('input[name="cjk"]'))
   radio.addEventListener("change", () => { if (radio.checked) { cjkRegion = radio.value; showCjk(); update(); } });
@@ -316,13 +318,13 @@ function setMergedAvailable(summary) {
     if (!ok && !note) { note = document.createElement("span"); note.className = "why-not"; b.append(note); }
     if (note) {
       note.hidden = ok;
-      note.textContent = ok ? "" : `Not for this quiz: a question has ${summary.max_options} options, and this layout shows at most ${most}.` +
-        (l.id === "merged2" && summary.merged1_ok ? " Merged One Column can." : "");
+      note.textContent = ok ? "" : tr("Not for this quiz: a question has {n} options, and this layout shows at most {most}.", { n: summary.max_options, most }) +
+        (l.id === "merged2" && summary.merged1_ok ? tr(" Merged One Column can.") : "");
     }
   }
   if (layout.unavailable) selectLayout(LAYOUTS[0].id, false);
 }
-const clearClass = filePicker("classlist", "class-drop", "class-state", "Choose or drop the class list", (f) => {
+const clearClass = filePicker("classlist", "class-drop", "class-state", () => tr("Choose or drop the class list"), (f) => {
   classFile = f;
   $("class-clear").hidden = !f;
   Object.assign(cls, { state: f ? "reading" : "none", summary: null, message: "" });
@@ -386,10 +388,10 @@ function onClasslist(data) {
   // options that do not fit this class list
   if (r.columns && r.columns.length) {
     const has = (c) => r.columns.some((x) => x.toLowerCase().replace(/[^a-z0-9]/g, "") === c.toLowerCase().replace(/[^a-z0-9]/g, ""));
-    if (cls.id && !has(cls.id)) { notes.push(`it has no column “${cls.id}”, so the student ID column is found automatically`); cls.id = ""; }
+    if (cls.id && !has(cls.id)) { notes.push(tr("it has no column “{c}”, so the student ID column is found automatically", { c: cls.id })); cls.id = ""; }
     const gone = cls.qr.filter((c) => !has(c));
-    if (gone.length) { notes.push(`it has no ${gone.map((g) => `“${g}”`).join(", ")} column for the QR code`); cls.qr = cls.qr.filter(has); }
-    if (notes.length) { inspectClass(); showConfigNote("For this class list: " + notes.join("; ") + "."); return; }
+    if (gone.length) { notes.push(tr("it has no {list} column for the QR code", { list: gone.map((g) => `“${g}”`).join(", ") })); cls.qr = cls.qr.filter(has); }
+    if (notes.length) { inspectClass(); showConfigNote(tr("For this class list: {notes}.", { notes: notes.join("; ") })); return; }
   }
   cls.summary = r;
   cls.state = r.error ? "error" : "ready";
@@ -403,7 +405,7 @@ function showClass() {
   const r = cls.summary;
   const st = $("class-status");
   st.className = "quiz-status" + (cls.state === "error" ? " bad" : "");
-  st.textContent = cls.state === "reading" ? (ready ? "Reading the class list…" : "The class list will be read once the exam maker has loaded.")
+  st.textContent = cls.state === "reading" ? (ready ? tr("Reading the class list…") : tr("The class list will be read once the exam maker has loaded."))
     : cls.state === "error" ? cls.message : "";
   st.hidden = !st.textContent;
   const usable = r && r.columns && r.columns.length;
@@ -413,16 +415,18 @@ function showClass() {
   $("class-summary").hidden = !(cls.state === "ready");
   if (cls.state === "ready") {
     $("cls-n").textContent = r.students;
-    $("cls-unit").textContent = r.students === 1 ? "student" : "students";
+    $("cls-unit").textContent = trn(r.students, "student", "students");
     $("cls-title").textContent = classFile.name;
     $("cls-id").textContent = r.number_column;
-    $("cls-id-how").textContent = cls.id ? "(chosen in Class list options)" : "(found automatically)";
-    $("cls-qr").textContent = r.qr_fields.map((f) => (f === "Card serial" ? "card serial" : f)).join(", ");
+    $("cls-id-how").textContent = cls.id ? tr("(chosen in Class list options)") : tr("(found automatically)");
+    $("cls-qr").textContent = r.qr_fields.map((f) => (f === "Card serial" ? tr("card serial") : f)).join(", ");
     $("cls-cols").textContent = r.columns.join(", ");
     const notes = [];
-    if (r.skipped) notes.push(`${r.skipped} row${r.skipped === 1 ? " was" : "s were"} skipped because ${r.skipped === 1 ? "its" : "their"} student ID is empty (such as Canvas's Test Student or Points Possible rows).`);
-    if (r.seat_column && !cls.randomize) notes.push(r.seats_in_list === 0 ? `The “${r.seat_column}” column is empty: tick Randomize seats to give everyone a seat.`
-      : `Seats come from the “${r.seat_column}” column${r.seats_in_list < r.students ? ` (${r.students - r.seats_in_list} student${r.students - r.seats_in_list === 1 ? " has" : "s have"} none)` : ""}.`);
+    if (r.skipped) notes.push(trn(r.skipped, "{n} row was skipped because its student ID is empty (such as Canvas's Test Student or Points Possible rows).",
+      "{n} rows were skipped because their student ID is empty (such as Canvas's Test Student or Points Possible rows)."));
+    if (r.seat_column && !cls.randomize) notes.push(r.seats_in_list === 0 ? tr("The “{c}” column is empty: tick Randomize seats to give everyone a seat.", { c: r.seat_column })
+      : r.seats_in_list < r.students ? trn(r.students - r.seats_in_list, "Seats come from the “{c}” column ({n} student has none).", "Seats come from the “{c}” column ({n} students have none).", { c: r.seat_column })
+      : tr("Seats come from the “{c}” column.", { c: r.seat_column }));
     const other = r.warnings.filter((w) => !w.includes("was skipped"));
     if (other.length) notes.push(other.join(" "));
     $("cls-note").textContent = notes.join(" ");
@@ -439,29 +443,33 @@ function showClassOptions() {
   const idNow = cls.id || r.number_column || r.detected_number_column || "";
   const n = r.students || r.rows;
   // seats
-  $("seat-n").textContent = n ? String(n) : "the number of students";
+  $("seat-n").textContent = n ? String(n) : tr("the number of students");
   $("randomize").checked = cls.randomize;
   const labels = seatLabels();
   $("randomize-sub").textContent = labels.length
-    ? `Each student gets a random seat from your ${labels.length} seat label${labels.length === 1 ? "" : "s"}, printed on their card and the attendance sheet.`
-    : `Each student gets a random seat from 1 to ${n}, printed on their card and the attendance sheet` +
-      (r.seat_column ? ` (in place of the “${r.seat_column}” column).` : ".");
+    ? trn(labels.length, "Each student gets a random seat from your {n} seat label, printed on their card and the attendance sheet.",
+      "Each student gets a random seat from your {n} seat labels, printed on their card and the attendance sheet.")
+    : r.seat_column ? tr("Each student gets a random seat from 1 to {n}, printed on their card and the attendance sheet (in place of the “{c}” column).", { n, c: r.seat_column })
+    : tr("Each student gets a random seat from 1 to {n}, printed on their card and the attendance sheet.", { n });
   const count = $("seat-count");
   count.hidden = !labels.length;
   if (labels.length) {
     const short = r.students && labels.length < r.students;
     count.classList.toggle("bad", !!short);
-    count.textContent = short ? `${labels.length} seat${labels.length === 1 ? "" : "s"} for ${r.students} students: add ${r.students - labels.length} more.`
-      : `${labels.length} seats for ${r.students || "the"} students` + (r.students && labels.length > r.students ? ` (${labels.length - r.students} ${labels.length - r.students === 1 ? "stays" : "stay"} empty).` : ".");
+    count.textContent = short ? tr("{n} seats for {students} students: add {more} more.", { n: labels.length, students: r.students, more: r.students - labels.length })
+      : r.students && labels.length > r.students
+        ? trn(labels.length - r.students, "{n} seats for {students} students ({empty} stays empty).", "{n} seats for {students} students ({empty} stay empty).",
+          { n: labels.length, students: r.students, empty: labels.length - r.students })
+        : tr("{n} seats for {students} students.", { n: labels.length, students: r.students || "" });
   }
   // student ID column
   const sel = $("id-col");
   const want = cls.id || "";
-  sel.replaceChildren(...[["", `Found automatically${r.detected_number_column ? `: ${r.detected_number_column}` : " (none found)"}`],
+  sel.replaceChildren(...[["", r.detected_number_column ? tr("Found automatically: {c}", { c: r.detected_number_column }) : tr("Found automatically (none found)")],
     ...r.columns.filter((c) => c !== r.name_column).map((c) => [c, c])].map(([v, t]) => new Option(t, v, false, v === want)));
-  $("id-default").textContent = r.detected_number_column ? `Default: ${r.detected_number_column}` : "No column has a student-number heading: choose one.";
+  $("id-default").textContent = r.detected_number_column ? tr("Default: {c}", { c: r.detected_number_column }) : tr("No column has a student-number heading: choose one.");
   // QR fields
-  $("qr-fixed").replaceChildren(...[r.name_column || "Student name", idNow, "Card serial"].filter(Boolean).map((t) => chip(t, "always")));
+  $("qr-fixed").replaceChildren(...[r.name_column || tr("Student name"), idNow, tr("card serial")].filter(Boolean).map((t) => chip(t, tr("always"))));
   const extra = r.columns.filter((c) => c !== r.name_column && !sameKey(c, idNow) && !(r.name_column || "").includes(c));
   $("qr-extra").replaceChildren(...extra.map((c) => {
     const l = document.createElement("label");
@@ -485,15 +493,15 @@ function showClassOptions() {
   const addable = r.columns.filter((c) => !cols.some((x) => sameKey(x.label, c)) && c !== r.name_column && !sameKey(c, idNow));
   const add = $("att-add");
   const keep = add.value;
-  add.replaceChildren(...addable.map((c) => new Option(`${c} (from the class list)`, c)), new Option("A blank column to fill in…", "\u0000blank"));
+  add.replaceChildren(...addable.map((c) => new Option(tr("{c} (from the class list)", { c }), c)), new Option(tr("A blank column to fill in…"), "\u0000blank"));
   if ([...add.options].some((o) => o.value === keep)) add.value = keep;
   $("att-blank").hidden = add.value !== "\u0000blank";
   // sort
   const sort = $("att-sort");
   const sortable = [...cols.filter((c) => c.sortable).map((c) => c.label),
     ...r.columns.filter((c) => !cols.some((x) => sameKey(x.label, c)) && c !== r.name_column && !sameKey(c, idNow))];
-  const groups = [new Option("Class list order", "")];
-  for (const c of sortable) groups.push(new Option(c, c));
+  const groups = [new Option(tr("Class list order"), "")];
+  for (const c of sortable) groups.push(new Option(tr(c), c));
   sort.replaceChildren(...groups);
   const match = sortable.find((c) => cls.sort && sameKey(c, cls.sort));
   if (cls.sort && !match) sort.append(new Option(cls.sort, cls.sort));   // from a configuration
@@ -507,16 +515,16 @@ function showClassOptions() {
 function attendanceColumns() {
   const r = cls.summary;
   const idNow = cls.id || r.number_column || r.detected_number_column || "student ID";
-  const cols = [{ label: "Student Name", why: "always", sortable: true },
-    { label: "Student Number", why: `always: ${idNow}`, sortable: true }];
+  const cols = [{ label: "Student Name", why: tr("always"), sortable: true },
+    { label: "Student Number", why: tr("always: {c}", { c: idNow }), sortable: true }];
   const seatAdded = cls.att.some((a) => ["seat", "seatnumber", "seatno"].includes(a.toLowerCase().replace(/[^a-z0-9]/g, "")));
-  if (cls.randomize && !seatAdded) cols.push({ label: "Seat", why: "seats are randomized", sortable: true });
+  if (cls.randomize && !seatAdded) cols.push({ label: "Seat", why: tr("seats are randomized"), sortable: true });
   for (const a of cls.att) {
     if (["studentname", "name", "fullname", "studentnumber"].includes(a.toLowerCase().replace(/[^a-z0-9]/g, "")) || sameKey(a, idNow)) continue;
     const inList = r.columns.some((c) => sameKey(c, a));
-    cols.push({ label: a, why: inList ? "" : "blank", removable: true, sortable: inList || ["seat", "seatnumber", "seatno"].includes(a.toLowerCase().replace(/[^a-z0-9]/g, "")) });
+    cols.push({ label: a, why: inList ? "" : tr("blank"), removable: true, sortable: inList || ["seat", "seatnumber", "seatno"].includes(a.toLowerCase().replace(/[^a-z0-9]/g, "")) });
   }
-  cols.push({ label: "Signature", why: "always", sortable: false });
+  cols.push({ label: "Signature", why: tr("always"), sortable: false });
   return cols;
 }
 
@@ -524,13 +532,13 @@ function chip(text, why, remove) {
   const li = document.createElement("li");
   li.className = "chip" + (remove ? "" : " locked");
   const t = document.createElement("span");
-  t.textContent = text;
+  t.textContent = tr(text);     // the program's own column names are translated; class-list ones stay
   li.append(t);
   if (why) { const w = document.createElement("span"); w.className = "why"; w.textContent = why; li.append(w); }
   if (remove) {
     const b = document.createElement("button");
     b.type = "button";
-    b.setAttribute("aria-label", `Remove ${text}`);
+    b.setAttribute("aria-label", tr("Remove {c}", { c: text }));
     b.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2 2 10" stroke="currentColor" stroke-width="1.8"/></svg>';
     b.addEventListener("click", remove);
     li.append(b);
@@ -540,12 +548,12 @@ function chip(text, why, remove) {
 
 function classProblem() {
   if (!classFile) return "";
-  if (cls.state === "reading") return "Reading the class list…";
-  if (cls.state === "error") return "Fix the class list, or choose its student ID column under Class list options.";
+  if (cls.state === "reading") return tr("Reading the class list…");
+  if (cls.state === "error") return tr("Fix the class list, or choose its student ID column under Class list options.");
   if (cls.randomize) {
     const labels = seatLabels();
     if (labels.length && cls.summary && labels.length < cls.summary.students)
-      return `Add seat labels: ${labels.length} for ${cls.summary.students} students.`;
+      return tr("Add seat labels: {n} for {students} students.", { n: labels.length, students: cls.summary.students });
   }
   return "";
 }
@@ -604,7 +612,8 @@ const PO_FLAGS = { "po-points": "--show-points", "po-noinstr": "--no-quiz-instru
 
 // --print-language: the language of the printed instructions, headings and labels (the quiz is
 // printed as written); --decimal-mark: point or comma, by default the language's (French: comma).
-let printLang = "en";
+let printLang = uiLang;          // follows the page's language until chosen
+let printLangChosen = false;
 let decimalChosen = null;    // "point" | "comma" when chosen on the page, else follow the language
 const langDecimal = () => (printLang === "fr" ? "comma" : "point");
 const decimalMark = () => decimalChosen || langDecimal();
@@ -627,12 +636,13 @@ function langArgs() {
 function showLanguage() {
   for (const r of document.querySelectorAll('input[name="plang"]')) r.checked = r.value === printLang;
   for (const r of document.querySelectorAll('input[name="po-decimal"]')) r.checked = r.value === decimalMark();
-  $("po-decimal-point-sub").textContent = "point" + (langDecimal() === "point" ? " (default)" : "");
-  $("po-decimal-comma-sub").textContent = "comma" + (langDecimal() === "comma" ? " (default)" : "");
+  for (const r of document.querySelectorAll('input[name="adv-csv"]')) r.checked = r.value === csvSeparator();
+  $("po-decimal-point-sub").textContent = tr(langDecimal() === "point" ? "point (default)" : "point");
+  $("po-decimal-comma-sub").textContent = tr(langDecimal() === "comma" ? "comma (default)" : "comma");
   if (typeof showPrintDefaults === "function" && layout) showPrintDefaults();
 }
 for (const r of document.querySelectorAll('input[name="plang"]'))
-  r.addEventListener("change", () => { if (r.checked) { printLang = r.value; showLanguage(); update(); } });
+  r.addEventListener("change", () => { if (r.checked) { printLang = r.value; printLangChosen = true; showLanguage(); update(); } });
 for (const r of document.querySelectorAll('input[name="po-decimal"]'))
   r.addEventListener("change", () => { if (r.checked) { decimalChosen = r.value === langDecimal() ? null : r.value; showLanguage(); update(); } });
 
@@ -659,26 +669,26 @@ function printArgs(run) {
 // why Generate cannot go ahead with these print options, or ""
 function printProblem() {
   const fs = $("po-font-size").value.trim(), os = $("po-option-size").value.trim();
-  if (fs && !(Number(fs) >= 4 && Number(fs) <= 72)) return "Print Options: the font size must be from 4 to 72 points.";
-  if (os && !(Number(os) >= 4 && Number(os) <= 72)) return "Print Options: the option font size must be from 4 to 72 points.";
+  if (fs && !(Number(fs) >= 4 && Number(fs) <= 72)) return tr("Print Options: the font size must be from 4 to 72 points.");
+  if (os && !(Number(os) >= 4 && Number(os) <= 72)) return tr("Print Options: the option font size must be from 4 to 72 points.");
   const cols = $("po-option-columns").value.trim();
-  if (cols && !(Number.isInteger(Number(cols)) && Number(cols) >= 1 && Number(cols) <= 6)) return "Print Options: option columns must be from 1 to 6.";
+  if (cols && !(Number.isInteger(Number(cols)) && Number(cols) >= 1 && Number(cols) <= 6)) return tr("Print Options: option columns must be from 1 to 6.");
   const lengths = [["po-spacing", "question spacing"], ["po-width", "answer field width"],
     ...(marginMode() === "all" ? [["po-margin", "margins"]] : SIDES.map((side) => ["po-margin-" + side, side + " margin"]))];
   for (const [id, what] of lengths) {
     const v = $(id).value.trim();
-    if (v && !/^\d+(\.\d+)?\s*(in|cm|mm|pt)?$/i.test(v)) return `Print Options: write the ${what} as a number and a unit, such as 0.75in, 2cm, 20mm or 54pt.`;
-    if (id.startsWith("po-margin") && /^\d+(\.\d+)?$/.test(v) && Number(v) < 5) return `Print Options: a margin of ${v} without a unit is ${v} points. Did you mean ${v}in or ${v}cm?`;
+    if (v && !/^\d+(\.\d+)?\s*(in|cm|mm|pt)?$/i.test(v)) return tr("Print Options: write the {what} as a number and a unit, such as 0.75in, 2cm, 20mm or 54pt.", { what: tr(what) });
+    if (id.startsWith("po-margin") && /^\d+(\.\d+)?$/.test(v) && Number(v) < 5) return tr("Print Options: a margin of {v} without a unit is {v} points. Did you mean {v}in or {v}cm?", { v });
   }
   const sh = $("po-shading").value.trim();
-  if (sh && !(Number(sh) >= 0 && Number(sh) <= 100)) return "Print Options: cell shading is a percentage from 0 to 100.";
-  if (aciMode() === "file" && !aciHtml()) return "Print Options: choose your answer card instructions file (.html), or pick Standard or None.";
+  if (sh && !(Number(sh) >= 0 && Number(sh) <= 100)) return tr("Print Options: cell shading is a percentage from 0 to 100.");
+  if (aciMode() === "file" && !aciHtml()) return tr("Print Options: choose your answer card instructions file (.html), or pick Standard or None.");
   for (const id of FONT_PICKS) {
     const f = fontChoice[id];
-    if (f && f.kind === "missing") return `Print Options: the font “${f.label}” from the configuration is not here: choose it from the fonts on this computer, choose its file, or pick another font.`;
+    if (f && f.kind === "missing") return tr("Print Options: the font “{f}” from the configuration is not here: choose it from the fonts on this computer, choose its file, or pick another font.", { f: f.label });
   }
   const seed = $("adv-seed").value.trim();
-  if (seed && !/^\d{1,10}$/.test(seed)) return "Advanced Options: the seed is a whole number.";
+  if (seed && !/^\d{1,10}$/.test(seed)) return tr("Advanced Options: the seed is a whole number.");
   return "";
 }
 
@@ -704,9 +714,9 @@ for (const r of document.querySelectorAll('input[name="po-aci"]')) r.addEventLis
 $("po-aci-file").addEventListener("change", () => {
   aciFiles = [...$("po-aci-file").files];
   const html = aciHtml();
-  $("po-aci-state").textContent = !aciFiles.length ? "An .html file (the same tags as question text); choose its images along with it."
-    : !html ? "No .html file among the files chosen."
-    : `${html.name}` + (aciFiles.length > 1 ? ` and ${aciFiles.length - 1} image${aciFiles.length === 2 ? "" : "s"}` : "");
+  $("po-aci-state").textContent = !aciFiles.length ? tr("An .html file (the same tags as question text); choose its images along with it.")
+    : !html ? tr("No .html file among the files chosen.")
+    : aciFiles.length > 1 ? trn(aciFiles.length - 1, "{name} and {n} image", "{name} and {n} images", { name: html.name }) : html.name;
   update();
 });
 
@@ -737,21 +747,23 @@ function fontMenu(id) {
     for (const [value, text] of items) g.append(new Option(text, value));
     sel.append(g);
   };
-  if (optionFont) sel.append(new Option("Same as the questions" + (sel.dataset.default === "same" ? " (default)" : ""), "same"));
-  group("Built into every PDF reader", BUILT_IN.map((f) => ["named:" + f, f + (f === sel.dataset.default ? " (default)" : "")]));
-  group("Supplied with MasterTest", Object.entries(SUPPLIED).map(([f, d]) =>
-    ["named:" + f, f + (d ? ` – ${d}` : "") + (f === sel.dataset.default ? " (default)" : "")]));
-  if (localFamilies) group("On this computer", [...localFamilies.keys()].map((f) => ["local:" + f, f]));
-  else sel.append(new Option("Fonts on this computer…", "ask-local"));
+  const dflt = (f) => (f === sel.dataset.default ? tr("{f} (default)", { f }) : f);
+  if (optionFont) sel.append(new Option(tr(sel.dataset.default === "same" ? "Same as the questions (default)" : "Same as the questions"), "same"));
+  group(tr("Built into every PDF reader"), BUILT_IN.map((f) => ["named:" + f, dflt(f)]));
+  group(tr("Supplied with MasterTest"), Object.entries(SUPPLIED).map(([f, d]) => ["named:" + f, dflt(f + (d ? ` – ${tr(d)}` : ""))]));
+  if (localFamilies) group(tr("On this computer"), [...localFamilies.keys()].map((f) => ["local:" + f, f]));
+  else sel.append(new Option(tr("Fonts on this computer…"), "ask-local"));
   const f = fontChoice[id];
-  if (f && f.kind === "file") group("Font file", [["file", f.label]]);
-  if (f && f.kind === "missing") group("From the configuration", [["missing", f.label + " (not available here)"]]);
-  sel.append(new Option("Choose a font file…", "ask-file"));
+  if (f && f.kind === "file") group(tr("Font file"), [["file", f.label]]);
+  if (f && f.kind === "missing") group(tr("From the configuration"), [["missing", tr("{f} (not available here)", { f: f.label })]]);
+  sel.append(new Option(tr("Choose a font file…"), "ask-file"));
   sel.value = [...sel.options].some((o) => o.value === keep) ? keep : fontDefault(id);
 }
 
+const fontNotes = {};     // the note shown beside each font list, for redrawing in another language
 function fontState(id, text) {
-  $(id + "-state").textContent = text || (id === "po-option-font" ? "for the option letters A, B, C…" : "");
+  fontNotes[id] = text || "";
+  $(id + "-state").textContent = text || (id === "po-option-font" ? tr("for the option letters A, B, C…") : "");
 }
 
 function fontPicked(id) {
@@ -762,13 +774,13 @@ function fontPicked(id) {
   if (v === "same") fontChoice[id] = { kind: "named", label: "same", value: v };
   else if (v.startsWith("named:")) fontChoice[id] = { kind: "named", label: v.slice(6), value: v };
   else if (v.startsWith("local:")) fontChoice[id] = { kind: "local", label: v.slice(6), value: v };
-  fontState(id, v.startsWith("local:") ? "installed on this computer; sent with the exam to the program" : "");
+  fontState(id, v.startsWith("local:") ? tr("installed on this computer; sent with the exam to the program") : "");
   update();
 }
 
 async function listLocalFonts(id) {
   if (!("queryLocalFonts" in window)) {
-    fontState(id, "This browser cannot list the fonts on this computer (Chrome and Edge can). Choose a font file instead.");
+    fontState(id, tr("This browser cannot list the fonts on this computer (Chrome and Edge can). Choose a font file instead."));
     return;
   }
   try {
@@ -780,16 +792,16 @@ async function listLocalFonts(id) {
     }
     localFamilies = new Map([...localFamilies.entries()].sort((a, b) => a[0].localeCompare(b[0])));
   } catch (err) {
-    fontState(id, "The browser did not allow listing the fonts on this computer. Choose a font file instead.");
+    fontState(id, tr("The browser did not allow listing the fonts on this computer. Choose a font file instead."));
     return;
   }
-  if (!localFamilies.size) { localFamilies = null; fontState(id, "No fonts were found on this computer. Choose a font file instead."); return; }
+  if (!localFamilies.size) { localFamilies = null; fontState(id, tr("No fonts were found on this computer. Choose a font file instead.")); return; }
   for (const other of FONT_PICKS) {
     fontMenu(other);
     const f = fontChoice[other];   // a font named in a configuration may now be found
     if (f && f.kind === "missing" && localFamilies.has(f.label)) { fontChoice[other] = { kind: "local", label: f.label, value: "local:" + f.label }; fontMenu(other); $(other).value = "local:" + f.label; }
   }
-  fontState(id, `${localFamilies.size} font families on this computer are now in the list.`);
+  fontState(id, tr("{n} font families on this computer are now in the list.", { n: localFamilies.size }));
   $(id).focus();
   update();
 }
@@ -808,7 +820,7 @@ for (const id of FONT_PICKS) {
       files: [regular, ...files.filter((f) => f !== regular)] };
     fontMenu(id);
     $(id).value = "file";
-    fontState(id, "a font file you chose; sent with the exam to the program");
+    fontState(id, tr("a font file you chose; sent with the exam to the program"));
     update();
   });
 }
@@ -866,7 +878,7 @@ async function fontFiles() {
       // same start, so the program finds the bold and italic faces
       const faces = await localFaces(f.label);
       faces.forEach((face, i) => files.push({ name: `fonts/${fontSlug(id)}/${fontSlug(f.label)}${i ? "-" + i : ""}${face.ext}`, data: face.data }));
-      if (!faces.length) throw new Error(`The font “${f.label}” could not be read from this computer.`);
+      if (!faces.length) throw new Error(tr("The font “{f}” could not be read from this computer.", { f: f.label }));
       f.runPath = files.find((x) => x.name.startsWith(`fonts/${fontSlug(id)}/`)).name;
     }
   }
@@ -886,7 +898,7 @@ function setFont(id, v) {
   else fontChoice[id] = { kind: "missing", label: name, value: "missing" };
   fontMenu(id);
   $(id).value = fontChoice[id].value;
-  fontState(id, fontChoice[id].kind === "missing" ? `The configuration used “${name}”: choose it from the fonts on this computer or as a file.` : "");
+  fontState(id, fontChoice[id].kind === "missing" ? tr("The configuration used “{f}”: choose it from the fonts on this computer or as a file.", { f: name }) : "");
   return v.toLowerCase() !== $(id).dataset.default.toLowerCase();
 }
 
@@ -918,11 +930,12 @@ function showPageOptions() {
   const kind = layoutKind();
   const titles = [...document.querySelectorAll("#page-opts input")].filter((b) => ["title-page", "collate-title-pages"].includes(b.dataset.po) && b.checked && !b.disabled).length;
   for (const box of document.querySelectorAll("#page-opts input")) {
-    const d = PAGE_DESC[box.dataset.po][kind];
+    const raw = PAGE_DESC[box.dataset.po][kind];
+    const d = typeof raw === "string" ? tr(raw) : raw;
     let off = d === null || d === false;
-    let text = d === null ? "Not for this layout: the questions and answers start on the first page." + (kind === "duplex" ? "" : "")
-      : d === false ? "Not needed: folded booklets and cards are always padded." : d;
-    if (kind === "duplex" && box.dataset.po === "collate-title-pages") text = "Not for folded booklets: the title page is always the booklet's first page.";
+    let text = d === null ? tr("Not for this layout: the questions and answers start on the first page.")
+      : d === false ? tr("Not needed: folded booklets and cards are always padded.") : d;
+    if (kind === "duplex" && box.dataset.po === "collate-title-pages") text = tr("Not for folded booklets: the title page is always the booklet's first page.");
     if (box.dataset.po === "title-page" && kind === "duplex") { box.checked = true; off = true; }
     else if (box.dataset.po === "title-page" && box.disabled && !off) box.checked = false;
     if (box.dataset.po === "pad-title-page" && kind === "booklet" && !titles) { off = true; }
@@ -930,8 +943,8 @@ function showPageOptions() {
     box.closest("label").classList.toggle("off", off);
     box.closest("label").querySelector("[data-desc]").textContent = text;
   }
-  $("pg-layout-note").textContent = `For the ${layoutName(layout)} layout.` +
-    (kind === "single" ? " The quiz and its answers are on the same pages, so the exam and answer-card options mean the same." : "");
+  $("pg-layout-note").textContent = tr("For the {layout} layout.", { layout: layoutName(layout) }) +
+    (kind === "single" ? tr(" The quiz and its answers are on the same pages, so the exam and answer-card options mean the same.") : "");
 }
 function pageArgs() {
   const on = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).map((b) => b.dataset.po);
@@ -939,8 +952,16 @@ function pageArgs() {
 }
 for (const box of document.querySelectorAll("#page-opts input")) box.addEventListener("change", () => { showPageOptions(); update(); });
 
+// answer_key.csv's separator: by default semicolons for French (--csv-separator)
+let csvChosen = null;
+const langCsv = () => (printLang === "fr" ? "semicolon" : "comma");
+const csvSeparator = () => csvChosen || langCsv();
+for (const r of document.querySelectorAll('input[name="adv-csv"]'))
+  r.addEventListener("change", () => { if (r.checked) { csvChosen = r.value === langCsv() ? null : r.value; showLanguage(); update(); } });
+
 function advArgs() {
   const a = [];
+  if (csvSeparator() !== langCsv()) a.push("--csv-separator", csvSeparator());
   if ($("adv-qr").value) a.push("--qr-quality", $("adv-qr").value);
   if ($("adv-seed").value.trim()) a.push("--seed", $("adv-seed").value.trim());
   return a;
@@ -949,18 +970,18 @@ for (const el of ["adv-qr", "adv-seed"]) { $(el).addEventListener("input", updat
 function showPrintDefaults() {
   const merged = layout.id.startsWith("merged");
   $("po-font-size").placeholder = merged ? "9" : "11";
-  $("po-font-size-hint").textContent = `points (default ${merged ? "9 on merged sheets" : "11"})`;
-  $("po-calc").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : standardText("calc");
-  $("po-fill").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : standardText("fill");
+  $("po-font-size-hint").textContent = tr(merged ? "points (default 9 on merged sheets)" : "points (default 11)");
+  $("po-calc").placeholder = merged ? tr("(none on merged sheets: the header says how to answer)") : standardText("calc");
+  $("po-fill").placeholder = merged ? tr("(none on merged sheets: the header says how to answer)") : standardText("fill");
   const iso = paper === "iso";
   const w = layout.id === "merged1" ? "180pt" : layout.id === "merged2" ? "90pt" : iso ? "91pt" : "95pt";
   $("po-width").placeholder = w;
-  $("po-width-hint").textContent = `width of the written-answer boxes; bubbles and number cells scale with it (default ${w} for this layout; ` +
-    (layout.id === "merged1" ? "60–255pt)" : layout.id === "merged2" ? `60–${iso ? 139 : 148}pt)` : "50pt up)");
+  $("po-width-hint").textContent = tr("width of the written-answer boxes; bubbles and number cells scale with it (default {w} for this layout; {range})",
+    { w, range: layout.id === "merged1" ? "60–255pt" : layout.id === "merged2" ? `60–${iso ? 139 : 148}pt` : tr("50pt up") });
   showPageOptions();
-  $("po-pad").closest("label").querySelector(".sub").textContent = "Every multiple-choice question gets as many bubbles as the " +
-    "quiz's question with the most options" + (quiz.summary && quiz.summary.max_options ? ` (${quiz.summary.max_options} for this quiz)` : "") +
-    ", so every row looks the same (the default). Untick to print one bubble per option.";
+  $("po-pad").closest("label").querySelector(".sub").textContent = quiz.summary && quiz.summary.max_options
+    ? tr("Every multiple-choice question gets as many bubbles as the quiz's question with the most options ({n} for this quiz), so every row looks the same (the default). Untick to print one bubble per option.", { n: quiz.summary.max_options })
+    : tr("Every multiple-choice question gets as many bubbles as the quiz's question with the most options, so every row looks the same (the default). Untick to print one bubble per option.");
 }
 
 for (const el of document.querySelectorAll("#print-details input, #print-details select")) {
@@ -998,7 +1019,7 @@ function setPrintOptions(got) {
   $("po-aci-file-row").hidden = aciWant !== "file";
   if (aciWant === "file" && !(aciHtml() && aciHtml().name === aci.split(/[\\/]/).pop())) {
     aciFiles = []; $("po-aci-file").value = "";
-    $("po-aci-state").textContent = `The configuration used ${aci}: choose it (and its images) again.`;
+    $("po-aci-state").textContent = tr("The configuration used {f}: choose it (and its images) again.", { f: aci });
   }
   any = any || aciWant !== "standard";
   $("po-option-columns").value = got["--option-columns"] || "1";
@@ -1035,8 +1056,8 @@ const mode = () => document.querySelector('input[name="mode"]:checked').value;
 function update() {
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
-  $("exams-hint").textContent = hasClass ? "How the exams for the students on the class list differ."
-    : "A unique exam for each student and variants need a class list.";
+  $("exams-hint").textContent = hasClass ? tr("How the exams for the students on the class list differ.")
+    : tr("A unique exam for each student and variants need a class list.");
   const variantsOn = hasClass && mode() === "variants";
   $("variants").disabled = !variantsOn;
   for (const b of document.querySelectorAll('[data-step="variants"]')) b.disabled = !variantsOn;
@@ -1047,12 +1068,12 @@ function update() {
   const classIssue = classProblem() || printProblem();
   const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem && !classIssue;
   $("generate").disabled = !ok;
-  $("why").textContent = !exportFile ? "Choose the quiz export to continue."
-    : !ready ? "Generate is ready once the exam maker has loaded."
-    : quiz.state === "error" ? "Choose a Canvas quiz export (.zip) to continue."
-    : quiz.state === "choose" ? "Choose which quiz to print."
-    : !quizReady ? "Reading the quiz…"
-    : !(hasClass || b > 0) ? "Choose a class list or at least one blank card."
+  $("why").textContent = !exportFile ? tr("Choose the quiz export to continue.")
+    : !ready ? tr("Generate is ready once the exam maker has loaded.")
+    : quiz.state === "error" ? tr("Choose a Canvas quiz export (.zip) to continue.")
+    : quiz.state === "choose" ? tr("Choose which quiz to print.")
+    : !quizReady ? tr("Reading the quiz…")
+    : !(hasClass || b > 0) ? tr("Choose a class list or at least one blank card.")
     : poolProblem || classIssue;
 }
 
@@ -1096,23 +1117,36 @@ function resetPool(s) {
   showLimitDefault();
   $("simulate").checked = false;
   $("simulate").disabled = !pool.classic;
-  $("simulate-sub").textContent = pool.classic
-    ? "Questions with the same name form a bank. Choose how many questions each exam draws from each name."
-    : "Only for Classic Quizzes exports: New Quizzes do not keep question names in their exports.";
+  showPoolTexts();
   $("titles").replaceChildren(...s.titles.map((t, i) => {
     const row = document.createElement("label");
     row.className = "row";
-    row.innerHTML = `<span class="t"></span><input type="number" min="0" max="${t.count}" step="1" value="${t.count}" inputmode="numeric"><span class="of">of ${t.count}</span>`;
+    row.innerHTML = `<span class="t"></span><input type="number" min="0" max="${t.count}" step="1" value="${t.count}" inputmode="numeric"><span class="of"></span>`;
+    row.querySelector(".of").textContent = tr("of {n}", { n: t.count });
     const name = row.querySelector(".t");
-    name.textContent = t.title || "(no name)";
+    name.textContent = t.title || tr("(no name)");
     name.classList.toggle("none", !t.title);
     const input = row.querySelector("input");
     input.dataset.index = String(i);
-    input.setAttribute("aria-label", `Questions named ${t.title || "(no name)"}, at most ${t.count}`);
+    input.setAttribute("aria-label", tr("Questions named {t}, at most {n}", { t: t.title || tr("(no name)"), n: t.count }));
     input.addEventListener("input", update);
     return row;
   }));
   if (pending) applyPendingPool();
+}
+
+// the pool's texts that depend on the quiz, also redrawn when the page's language changes
+function showPoolTexts() {
+  $("simulate-sub").textContent = pool.classic
+    ? tr("Questions with the same name form a bank. Choose how many questions each exam draws from each name.")
+    : tr("Only for Classic Quizzes exports: New Quizzes do not keep question names in their exports.");
+  pool.titles.forEach((t, i) => {
+    const row = $("titles").children[i];
+    if (!row) return;
+    row.querySelector(".of").textContent = tr("of {n}", { n: t.count });
+    if (!t.title) row.querySelector(".t").textContent = tr("(no name)");
+    row.querySelector("input").setAttribute("aria-label", tr("Questions named {t}, at most {n}", { t: t.title || tr("(no name)"), n: t.count }));
+  });
 }
 
 function counts() {
@@ -1121,8 +1155,9 @@ function counts() {
 
 function showLimitDefault() {
   const d = poolDefault();
-  $("limit-of").textContent = `of ${pool.total} question${pool.total === 1 ? "" : "s"} (default: ` +
-    (d === pool.total ? `all ${pool.total})` : `${d}, following the item banks)`);
+  $("limit-of").textContent = d === pool.total
+    ? trn(pool.total, "of {n} question (default: all {n})", "of {n} questions (default: all {n})")
+    : trn(pool.total, "of {n} question (default: {d}, following the item banks)", "of {n} questions (default: {d}, following the item banks)", { d });
 }
 
 $("ignore-banks").addEventListener("change", () => {
@@ -1142,21 +1177,22 @@ function showPool() {
   const ignoreOff = !picks.length || sim || limited;
   $("ignore-banks").disabled = ignoreOff;
   $("ignore-row").classList.toggle("off", ignoreOff);
-  const rules = picks.slice(0, 4).map((r) => `“${r.name}” picks ${r.pick} of ${r.of}`).join("; ") + (picks.length > 4 ? `; and ${picks.length - 4} more` : "");
+  const rules = picks.slice(0, 4).map((r) => tr("“{name}” picks {pick} of {of}", r)).join("; ") + (picks.length > 4 ? tr("; and {n} more", { n: picks.length - 4 }) : "");
   $("ignore-sub").textContent = !picks.length
-    ? "For quizzes whose item banks or question groups pick some of their questions (“pick N”). This quiz has none, so every question is used."
-    : (sim ? "Not used while question banks are simulated: the names decide. "
-      : limited ? "Not used while the test is limited: the questions are drawn from the whole quiz. "
+    ? tr("For quizzes whose item banks or question groups pick some of their questions (“pick N”). This quiz has none, so every question is used.")
+    : (sim ? tr("Not used while question banks are simulated: the names decide. ")
+      : limited ? tr("Not used while the test is limited: the questions are drawn from the whole quiz. ")
       : "") +
-      `By default each exam follows the quiz's item banks (${rules}), giving ${pool.perExam} questions per exam. Tick to print every question of the banks instead (${pool.total} per exam).`;
+      tr("By default each exam follows the quiz's item banks ({rules}), giving {per} questions per exam. Tick to print every question of the banks instead ({total} per exam).",
+        { rules, per: pool.perExam, total: pool.total });
   $("limit-row").classList.toggle("off", sim);
   for (const el of [$("limit"), ...document.querySelectorAll('[data-step="limit"]')]) el.disabled = sim;
   $("banks").classList.toggle("off", !pool.classic);
   $("titles").classList.toggle("off", !sim);
   for (const i of $("titles").querySelectorAll("input")) i.disabled = !sim;
-  $("limit-hint").textContent = sim ? "Not used while question banks are simulated."
-    : pool.picks.length && !$("ignore-banks").checked ? "Each exam gets this many questions. Changing the number draws them at random from the whole quiz instead of following the item banks."
-    : "Each exam gets this many questions, drawn at random from the whole quiz.";
+  $("limit-hint").textContent = sim ? tr("Not used while question banks are simulated.")
+    : pool.picks.length && !$("ignore-banks").checked ? tr("Each exam gets this many questions. Changing the number draws them at random from the whole quiz instead of following the item banks.")
+    : tr("Each exam gets this many questions, drawn at random from the whole quiz.");
   const total = $("banks-total");
   total.hidden = !sim;
   if (sim) {
@@ -1167,15 +1203,15 @@ function showPool() {
     total.classList.toggle("bad", bad >= 0 || sum === 0);
     if (bad >= 0) {
       const t = pool.titles[bad];
-      total.textContent = `“${t.title || "(no name)"}” takes a whole number from 0 to ${t.count}.`;
-      return `Fix the number of questions for “${t.title || "(no name)"}”.`;
+      total.textContent = tr("“{t}” takes a whole number from 0 to {n}.", { t: t.title || tr("(no name)"), n: t.count });
+      return tr("Fix the number of questions for “{t}”.", { t: t.title || tr("(no name)") });
     }
-    if (sum === 0) { total.textContent = "Choose at least one question."; return "Choose at least one question for the exam."; }
-    total.textContent = `Each exam: ${sum} question${sum === 1 ? "" : "s"} from ${used} of ${pool.titles.length} name${pool.titles.length === 1 ? "" : "s"}.`;
+    if (sum === 0) { total.textContent = tr("Choose at least one question."); return tr("Choose at least one question for the exam."); }
+    total.textContent = trn(sum, "Each exam: {n} question from {used} of {names} names.", "Each exam: {n} questions from {used} of {names} names.", { used, names: pool.titles.length });
     return "";
   }
   const n = Number($("limit").value);
-  if (!Number.isInteger(n) || n < 1 || n > pool.total) return `Limit the test to a number of questions from 1 to ${pool.total}.`;
+  if (!Number.isInteger(n) || n < 1 || n > pool.total) return tr("Limit the test to a number of questions from 1 to {n}.", { n: pool.total });
   return "";
 }
 
@@ -1268,7 +1304,7 @@ function loadConfig(name, textIn) {
   const got = {}, rest = [], ignored = [];
   const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
     "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation",
-    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--option-font-size", "--option-columns",
+    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--csv-separator", "--option-font-size", "--option-columns",
     "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text",
     "--margin-left", "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading",
     "--answer-card-instructions", "--page-options", "--qr-quality", "--seed"]);
@@ -1289,8 +1325,11 @@ function loadConfig(name, textIn) {
   setPaper(iso ? "iso" : "traditional");
   cjkRegion = got["--cjk-region"] && got["--cjk-region"].toLowerCase() !== "auto" ? got["--cjk-region"].toLowerCase() : null;
   printLang = (got["--print-language"] || "en").toLowerCase() === "fr" ? "fr" : "en";
+  printLangChosen = true;
   const mark = (got["--decimal-mark"] || "").toLowerCase();
   decimalChosen = mark === "point" || mark === "comma" ? (mark === langDecimal() ? null : mark) : null;
+  const sep = (got["--csv-separator"] || "").toLowerCase();
+  csvChosen = sep === "comma" || sep === "semicolon" ? (sep === langCsv() ? null : sep) : null;
   showLanguage();
   showCjk();
   const id = LAYOUT_OF(size, got["--columns"]);
@@ -1318,17 +1357,17 @@ function loadConfig(name, textIn) {
     ignore: !!got["--ignore-item-banks"] };
   configName = name;
   // say what was loaded
-  const parts = [`${layoutName(LAYOUTS.find((l) => l.id === layout.id))} on ${iso ? "A4/A3" : "letter/tabloid"} paper`];
-  if (variants) parts.push(`${v} variants`);
-  if (Number(got["--blank-cards"]) > 0) parts.push(`${got["--blank-cards"]} blank card${got["--blank-cards"] === "1" ? "" : "s"}`);
-  if (pending.maxItems) parts.push(`${pending.maxItems} questions per exam`);
-  if (pending.titleMap) parts.push("simulated question banks");
-  if (pending.ignore) parts.push("item banks ignored");
-  if (pending.quiz) parts.push(`quiz ${pending.quiz} of the export`);
-  if (cls.randomize) parts.push($("seat-labels").value ? "seats from seat labels" : "randomized seats");
-  if (cls.id || cls.qr.length) parts.push("class list options");
-  if (cls.att.length || cls.sort || cls.orient !== "portrait") parts.push("attendance sheet options");
-  if (setPrintOptions(got)) parts.push("print options");
+  const parts = [tr("{layout} on {paper} paper", { layout: layoutName(LAYOUTS.find((l) => l.id === layout.id)), paper: iso ? "A4/A3" : tr("letter/tabloid") })];
+  if (variants) parts.push(tr("{n} variants", { n: v }));
+  if (Number(got["--blank-cards"]) > 0) parts.push(trn(Number(got["--blank-cards"]), "{n} blank card", "{n} blank cards"));
+  if (pending.maxItems) parts.push(tr("{n} questions per exam", { n: pending.maxItems }));
+  if (pending.titleMap) parts.push(tr("simulated question banks"));
+  if (pending.ignore) parts.push(tr("item banks ignored"));
+  if (pending.quiz) parts.push(tr("quiz {n} of the export", { n: pending.quiz }));
+  if (cls.randomize) parts.push(tr($("seat-labels").value ? "seats from seat labels" : "randomized seats"));
+  if (cls.id || cls.qr.length) parts.push(tr("class list options"));
+  if (cls.att.length || cls.sort || cls.orient !== "portrait") parts.push(tr("attendance sheet options"));
+  if (setPrintOptions(got)) parts.push(tr("print options"));
   // page options and advanced options
   const canon = (v) => v.trim().toLowerCase();
   const wanted = csvSplit(got["--page-options"] || "").map(canon);
@@ -1336,15 +1375,15 @@ function loadConfig(name, textIn) {
   const unknownPages = wanted.filter((w) => ![...document.querySelectorAll("#page-opts input")].some((b) => canon(b.dataset.po) === w));
   if (unknownPages.length) extras.push("--page-options", unknownPages.join(","));   // the program explains them
   showPageOptions();
-  if (wanted.length) { $("page-details").open = true; parts.push("page options"); }
+  if (wanted.length) { $("page-details").open = true; parts.push(tr("page options")); }
   $("adv-qr").value = ["L", "Q", "H"].includes((got["--qr-quality"] || "").toUpperCase()) ? got["--qr-quality"].toUpperCase() : "";
   $("adv-seed").value = got["--seed"] || "";
-  if (got["--qr-quality"] || got["--seed"]) { $("adv-details").open = true; parts.push(got["--seed"] ? `seed ${got["--seed"]}` : "QR code quality"); }
-  if (sortBy.length > 1) parts.push(`sorted by ${sortBy[0]} only (the page sorts by one column)`);
-  let msg = `Loaded ${name}: ${parts.join(", ")}.`;
-  if (extras.length) msg += ` Also used when generating: ${extras.join(" ")}.`;
-  if (got["--password"]) msg += " The answer key was password protected; you are asked for a password when you generate.";
-  if (ignored.length) msg += ` Not used here (choose the files on this page): ${ignored.join(", ")}.`;
+  if (got["--qr-quality"] || got["--seed"]) { $("adv-details").open = true; parts.push(got["--seed"] ? tr("seed {n}", { n: got["--seed"] }) : tr("QR code quality")); }
+  if (sortBy.length > 1) parts.push(tr("sorted by {c} only (the page sorts by one column)", { c: sortBy[0] }));
+  let msg = tr("Loaded {name}: {parts}.", { name, parts: parts.join(", ") });
+  if (extras.length) msg += tr(" Also used when generating: {extras}.", { extras: extras.join(" ") });
+  if (got["--password"]) msg += tr(" The answer key was password protected; you are asked for a password when you generate.");
+  if (ignored.length) msg += tr(" Not used here (choose the files on this page): {list}.", { list: ignored.join(", ") });
   showConfigState(msg, false);
   if (classFile) { cls.state = "reading"; showClass(); if (ready) inspectClass(); }
   // the export may already be open
@@ -1368,14 +1407,14 @@ function applyPendingPool() {
   pending = null;
   const problems = [];
   if (p.titleMap) {
-    if (!pool.classic) problems.push("its simulated question banks are only for Classic Quizzes exports");
+    if (!pool.classic) problems.push(tr("its simulated question banks are only for Classic Quizzes exports"));
     else {
       const map = new Map();
       for (const part of p.titleMap.split(/(?<!\\);/)) {
         const s = part.replace(/\\;/g, ";").trim();
         if (!s) continue;
         const at = s.lastIndexOf("=");
-        if (at < 0) { problems.push(`“${s}” in its title map has no =count`); continue; }
+        if (at < 0) { problems.push(tr("“{s}” in its title map has no =count", { s })); continue; }
         map.set(s.slice(0, at).trim(), Number(s.slice(at + 1).trim()));
       }
       if (map.size) {
@@ -1383,19 +1422,19 @@ function applyPendingPool() {
         const inputs = $("titles").querySelectorAll("input");
         pool.titles.forEach((t, i) => { inputs[i].value = String(map.has(t.title) ? map.get(t.title) : 0); });
         const missing = [...map.keys()].filter((k) => !pool.titles.some((t) => t.title === k));
-        if (missing.length) problems.push(`this quiz has no questions named ${missing.map((m) => `“${m}”`).join(", ")}`);
-      } else if (!/=/.test(p.titleMap)) problems.push(`its title map is a file (${p.titleMap}); set the numbers here instead`);
+        if (missing.length) problems.push(tr("this quiz has no questions named {list}", { list: missing.map((m) => `“${m}”`).join(", ") }));
+      } else if (!/=/.test(p.titleMap)) problems.push(tr("its title map is a file ({f}); set the numbers here instead", { f: p.titleMap }));
     }
   } else if (p.ignore) {
     if (pool.picks.length) { $("ignore-banks").checked = true; $("limit").value = String(poolDefault()); showLimitDefault(); }
-    else problems.push("it ignores item banks, but this quiz has no “pick N” rules");
+    else problems.push(tr("it ignores item banks, but this quiz has no “pick N” rules"));
   }
   if (!p.titleMap && p.maxItems) {
     const n = Number(p.maxItems);
     if (Number.isInteger(n) && n >= 1 && n <= pool.total) $("limit").value = String(n);
-    else problems.push(`it limits the test to ${p.maxItems} questions, but this quiz has ${pool.total}`);
+    else problems.push(tr("it limits the test to {n} questions, but this quiz has {total}", { n: p.maxItems, total: pool.total }));
   }
-  if (problems.length) showConfigState($("config-text").textContent + " Check the question pool: " + problems.join("; ") + ".", true);
+  if (problems.length) showConfigState($("config-text").textContent + tr(" Check the question pool: {problems}.", { problems: problems.join("; ") }), true);
   if (p.titleMap || p.maxItems || p.ignore) $("pool").open = true;
 }
 
@@ -1415,10 +1454,10 @@ $("config-file").addEventListener("change", async () => {
   $("config-file").value = "";
   if (!f) return;
   try {
-    if (f.size > 100000) throw new Error("this is not an exam configuration (too large)");
+    if (f.size > 100000) throw new Error(tr("this is not an exam configuration (too large)"));
     loadConfig(f.name, await f.text());
   } catch (err) {
-    showConfigState(`${f.name} could not be loaded: ${err.message}.`, true);
+    showConfigState(tr("{name} could not be loaded: {why}.", { name: f.name, why: err.message }), true);
   }
 });
 $("config-forget").addEventListener("click", () => {
@@ -1442,7 +1481,7 @@ const COMMON = ["password", "passw0rd", "qwerty", "letmein", "welcome", "admin",
 
 // a rough estimate of how hard the password is to guess
 function strength(pw) {
-  if (!pw) return { level: "none", label: "No password", pct: 4 };
+  if (!pw) return { level: "none", label: tr("No password"), pct: 4 };
   let set = 0;
   if (/[a-z]/.test(pw)) set += 26;
   if (/[A-Z]/.test(pw)) set += 26;
@@ -1455,9 +1494,9 @@ function strength(pw) {
   else if (COMMON.some((w) => w.length > 3 && lower.includes(w))) bits -= 12;
   if (/0123|1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|qwer|asdf|zxcv/.test(lower)) bits -= 10;
   const pct = Math.max(10, Math.min(100, (bits / 80) * 100));
-  if (bits < 40) return { level: "low", label: "Low strength", pct };
-  if (bits < 60) return { level: "medium", label: "Medium strength", pct };
-  return { level: "strong", label: "Strong password", pct };
+  if (bits < 40) return { level: "low", label: tr("Low strength"), pct };
+  if (bits < 60) return { level: "medium", label: tr("Medium strength"), pct };
+  return { level: "strong", label: tr("Strong password"), pct };
 }
 
 function showStrength() {
@@ -1467,13 +1506,13 @@ function showStrength() {
   bar.style.background = `var(--${s.level === "medium" ? "medium" : s.level === "strong" ? "strong" : "weak"})`;
   $("pw-strength").textContent = s.label;
   $("pw-strength").dataset.level = s.level;
-  $("pw-accept").textContent = $("pw").value ? "Accept password" : "Continue without a password";
+  $("pw-accept").textContent = tr($("pw").value ? "Accept password" : "Continue without a password");
 }
 
 function openPassword() {
   $("pw").value = "";
   $("pw").type = "password";
-  $("pw-show").textContent = "Show";
+  $("pw-show").textContent = tr("Show");
   $("pw-show").setAttribute("aria-pressed", "false");
   showStrength();
   $("pw-dialog").showModal();
@@ -1483,7 +1522,7 @@ $("pw").addEventListener("input", showStrength);
 $("pw-show").addEventListener("click", () => {
   const show = $("pw").type === "password";
   $("pw").type = show ? "text" : "password";
-  $("pw-show").textContent = show ? "Hide" : "Show";
+  $("pw-show").textContent = tr(show ? "Hide" : "Show");
   $("pw-show").setAttribute("aria-pressed", String(show));
   $("pw").focus();
 });
@@ -1517,8 +1556,8 @@ async function generate(password) {
   showStep(2);
   $("big").className = "big-bubble working";
   $("big").textContent = "";
-  $("result-title").textContent = "Making your exam…";
-  $("result-text").textContent = "This takes a few seconds for a class, longer for large exams.";
+  $("result-title").textContent = tr("Making your exam…");
+  $("result-text").textContent = tr("This takes a few seconds for a class, longer for large exams.");
   $("download").hidden = true;
   $("config-link").hidden = true;
   $("back").hidden = true;
@@ -1550,12 +1589,12 @@ function finish(ok, data) {
   if (!ok) {
     $("big").className = "big-bubble bad";
     $("big").innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4"/></svg>';
-    $("result-title").textContent = "The exam could not be made";
-    $("result-text").textContent = "The message below says what to change. Go back, adjust your choices and generate again.";
+    $("result-title").textContent = tr("The exam could not be made");
+    $("result-text").textContent = tr("The message below says what to change. Go back, adjust your choices and generate again.");
     const errors = $("log").textContent.split("\n").filter((l) => l.startsWith("ERROR"));
     $("log").textContent = errors.length ? errors.join("\n").replace(/^ERROR: /gm, "") : $("log").textContent;
     $("log").hidden = false;
-    $("back").textContent = "Back to step 1";
+    $("back").textContent = tr("Back to step 1");
     $("result-title").focus();
     return;
   }
@@ -1563,28 +1602,29 @@ function finish(ok, data) {
   const a = $("download");
   a.href = downloadUrl;
   a.download = data.name;
-  a.textContent = `Download ${data.name} again`;
+  a.textContent = tr("Download {name} again", { name: data.name });
   a.hidden = false;
   offerConfig(data);
   $("big").className = "big-bubble ok";
   $("big").innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6"/></svg>';
-  $("result-title").textContent = "Your exam is now downloading";
-  $("result-text").textContent = `${data.name} holds the exams, answer cards and answer key, ready to print. ` +
-    "Scan the answer key with MasterTest Marker first, then the cards.";
-  $("back").textContent = "Make another exam";
+  $("result-title").textContent = tr("Your exam is now downloading");
+  $("result-text").textContent = tr("{name} holds the exams, answer cards and answer key, ready to print. Scan the answer key with MasterTest Marker first, then the cards.", { name: data.name });
+  $("back").textContent = tr("Make another exam");
   $("result-title").focus();
   a.click();
 }
 
 worker.onmessage = ({ data }) => {
   if (data.type === "progress") {
-    $("result-text").textContent = data.text;
+    $("result-text").textContent = data.region
+      ? tr("Downloading the {region} font ({mb} MB; only the first time)…", { region: cjkName(data.region), mb: data.mb }) : tr(data.text);
   } else if (data.type === "status") {
-    $("engine-detail").textContent = "· " + data.text.replace(/…$/, "");
+    $("engine-detail").textContent = "· " + tr(data.text.replace(/…$/, ""));
   } else if (data.type === "ready") {
     ready = true;
-    $("engine-state").textContent = "Ready";
-    $("engine-detail").textContent = `· loaded in ${data.seconds.toFixed(0)} s`;
+    engineSeconds = data.seconds;
+    $("engine-state").textContent = tr("Ready");
+    $("engine-detail").textContent = tr("· loaded in {s} s", { s: data.seconds.toFixed(0) });
     $("version-line").textContent = `MasterTest Web ${data.spec.version}`;
     $("version-top").textContent = data.spec.version;
     cjkFonts = data.cjk || {};
@@ -1593,7 +1633,7 @@ worker.onmessage = ({ data }) => {
     if (classFile && cls.state === "reading") { showClass(); inspectClass(); }
     update();
   } else if (data.type === "error") {
-    $("engine-state").textContent = "Could not start";
+    $("engine-state").textContent = tr("Could not start");
     $("engine-detail").textContent = "· " + data.text;
   } else if (data.type === "quizzes") {
     onQuizzes(data);
@@ -1616,6 +1656,36 @@ fetch("build.json", { cache: "no-cache" }).then((r) => r.json()).then((b) => {
   if ($("version-line").textContent === "MasterTest Web") $("version-line").textContent = `MasterTest Web ${b.version}`;
 }).catch(() => {});
 
+// ------------------------------------------------------------------ the page's language
+
+let engineSeconds = null;
+
+// Shows the page in English or French (remembered in this browser). Everything the page wrote
+// is written again in the new language; the print language follows unless it was chosen.
+function setUiLang(lang, first = false) {
+  uiLang = lang;
+  try { localStorage.setItem("mastertest-ui-lang", lang); } catch (e) { /* no storage */ }
+  for (const b of document.querySelectorAll(".ui-lang button")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+  if (!printLangChosen) printLang = lang;
+  translatePage();
+  if (first) return;
+  setPaper(paper);
+  for (const id of FONT_PICKS) { const keep = $(id).value; fontMenu(id); $(id).value = keep; fontState(id, fontNotes[id]); }
+  showLanguage();
+  showQuiz();
+  if (quiz.state === "ready" && quiz.summary) { setMergedAvailable(quiz.summary); showPoolTexts(); showLimitDefault(); }
+  if (cls.state !== "none") showClass();
+  if (ready) {
+    $("engine-state").textContent = tr("Ready");
+    if (engineSeconds !== null) $("engine-detail").textContent = tr("· loaded in {s} s", { s: engineSeconds.toFixed(0) });
+  }
+  showStrength();
+  update();
+}
+for (const b of document.querySelectorAll(".ui-lang button")) b.addEventListener("click", () => { if (b.dataset.lang !== uiLang) setUiLang(b.dataset.lang); });
+
+setUiLang(uiLang, true);
 buildLayouts();
 showPrintDefaults();
+showLanguage();
 update();
