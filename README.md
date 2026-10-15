@@ -1,6 +1,6 @@
 # MasterTest Web
 
-Version 0.4.0 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
+Version 0.4.6 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
 built to run entirely in a web browser (MasterTest.ca). Teachers choose a Canvas
 quiz export (and a class list), set the options, and download a zip of exams,
 answer cards, the answer key and attendance sheet for marking with the
