@@ -78,14 +78,36 @@ function summary({ name, number, data }) {
   post("summary", { name, number, result: JSON.parse(py.runPython("web_runner.summary(web_name, web_number)")) });
 }
 
+// Reads a class list as soon as it is chosen, with the page's class-list options. The file is
+// written to a folder of its own and deleted straight after (the run gets its own copy).
+function classlist({ name, data, id, qr }) {
+  const dir = "/work/classcheck";
+  py.FS.mkdirTree(dir);
+  const path = dir + "/" + name;
+  py.FS.writeFile(path, new Uint8Array(data));
+  try {
+    py.globals.set("web_path", path);
+    py.globals.set("web_id", id || "");
+    py.globals.set("web_qr", qr || "");
+    post("classlist", { name, result: JSON.parse(py.runPython("from examgen import web_runner; web_runner.classlist(web_path, web_id, web_qr)")) });
+  } finally {
+    py.FS.unlink(path);
+  }
+}
+
 self.onmessage = async (event) => {
   const msg = event.data;
   try {
     if (msg.type === "inspect") inspect(msg);
     else if (msg.type === "summary") summary(msg);
+    else if (msg.type === "classlist") classlist(msg);
     else if (msg.type === "run") await run(msg);
   } catch (err) {
     const text = String(err && err.message ? err.message : err);
+    if (msg.type === "classlist") {
+      post("classlist", { name: msg.name, result: { error: "This file could not be read: " + text.split("\n").filter(Boolean).pop(), columns: [] } });
+      return;
+    }
     if (msg.type === "inspect" || msg.type === "summary") {
       post(msg.type === "inspect" ? "quizzes" : "summary",
         { name: msg.name, number: msg.number, result: { error: "This file could not be read: " + text.split("\n").filter(Boolean).pop() } });

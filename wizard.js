@@ -292,8 +292,264 @@ function setMergedAvailable(summary) {
 const clearClass = filePicker("classlist", "class-drop", "class-state", "Choose or drop the class list", (f) => {
   classFile = f;
   $("class-clear").hidden = !f;
+  Object.assign(cls, { state: f ? "reading" : "none", summary: null, message: "" });
+  showClass();
+  if (f && ready) inspectClass();
 });
 $("class-clear").addEventListener("click", (e) => { e.preventDefault(); clearClass(); });
+
+// ------------------------------------------------------------------ the class list
+
+// what the class list holds (read by the worker) and the page's class-list options
+const cls = {
+  state: "none", summary: null, message: "",
+  id: "",                 // --student-id-column; "" = the column the program finds
+  qr: [],                 // --add-qr-field
+  randomize: false,       // --randomize-seats, or --seat-labels when labels are given
+  att: [],                // --add-attendance-field
+  sort: "", desc: false,  // --attendance-sort
+  orient: "portrait",     // --attendance-orientation
+};
+let classAsked = 0;
+
+// comma-separated values as the program reads them (double quotes protect commas)
+function csvSplit(text) {
+  const out = [];
+  let cur = "", q = false, started = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') q = false;
+      else cur += c;
+    } else if (c === '"' && !cur.trim()) { q = true; cur = ""; started = true; }
+    else if (c === ",") { out.push(cur.trim()); cur = ""; started = false; }
+    else { cur += c; started = true; }
+  }
+  if (started || cur.trim()) out.push(cur.trim());
+  return out.filter((x) => x);
+}
+const csvJoin = (items) => items.map((v) => (/[",]/.test(v) || v !== v.trim() ? `"${v.replace(/"/g, '""')}"` : v)).join(",");
+
+// seat labels: one per line when there are several lines, otherwise comma-separated
+function seatLabels() {
+  const lines = $("seat-labels").value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const all = lines.length > 1 ? lines : csvSplit(lines[0] || "");
+  return [...new Set(all)];
+}
+
+async function inspectClass() {
+  const f = classFile;
+  const data = await f.arrayBuffer();
+  if (f !== classFile) return;
+  classAsked++;
+  worker.postMessage({ type: "classlist", name: f.name, data, id: cls.id, qr: csvJoin(cls.qr), ask: classAsked }, [data]);
+}
+
+function onClasslist(data) {
+  if (!classFile || data.name !== classFile.name) return;
+  const r = data.result;
+  const notes = [];
+  // options that do not fit this class list
+  if (r.columns && r.columns.length) {
+    const has = (c) => r.columns.some((x) => x.toLowerCase().replace(/[^a-z0-9]/g, "") === c.toLowerCase().replace(/[^a-z0-9]/g, ""));
+    if (cls.id && !has(cls.id)) { notes.push(`it has no column “${cls.id}”, so the student ID column is found automatically`); cls.id = ""; }
+    const gone = cls.qr.filter((c) => !has(c));
+    if (gone.length) { notes.push(`it has no ${gone.map((g) => `“${g}”`).join(", ")} column for the QR code`); cls.qr = cls.qr.filter(has); }
+    if (notes.length) { inspectClass(); showConfigNote("For this class list: " + notes.join("; ") + "."); return; }
+  }
+  cls.summary = r;
+  cls.state = r.error ? "error" : "ready";
+  cls.message = r.error || "";
+  showClass();
+}
+
+function showClass() {
+  const on = cls.state !== "none";
+  $("classinfo").hidden = !on;
+  const r = cls.summary;
+  const st = $("class-status");
+  st.className = "quiz-status" + (cls.state === "error" ? " bad" : "");
+  st.textContent = cls.state === "reading" ? (ready ? "Reading the class list…" : "The class list will be read once the exam maker has loaded.")
+    : cls.state === "error" ? cls.message : "";
+  st.hidden = !st.textContent;
+  const usable = r && r.columns && r.columns.length;
+  $("class-summary").hidden = !(cls.state === "ready");
+  // the options stay open after an error the options can fix (such as no student-number column)
+  $("class-opts").hidden = !usable;
+  if (cls.state === "ready") {
+    $("cls-n").textContent = r.students;
+    $("cls-unit").textContent = r.students === 1 ? "student" : "students";
+    $("cls-title").textContent = classFile.name;
+    $("cls-id").textContent = r.number_column;
+    $("cls-id-how").textContent = cls.id ? "(chosen in Class list options)" : "(found from its heading)";
+    $("cls-qr").textContent = r.qr_fields.map((f) => (f === "Card serial" ? "card serial" : f)).join(", ");
+    $("cls-cols").textContent = r.columns.join(", ");
+    const notes = [];
+    if (r.skipped) notes.push(`${r.skipped} row${r.skipped === 1 ? " was" : "s were"} skipped because ${r.skipped === 1 ? "its" : "their"} student ID is empty (such as Canvas's Test Student or Points Possible rows).`);
+    if (r.seat_column && !cls.randomize) notes.push(r.seats_in_list === 0 ? `The “${r.seat_column}” column is empty: tick Randomize seats to give everyone a seat.`
+      : `Seats come from the “${r.seat_column}” column${r.seats_in_list < r.students ? ` (${r.students - r.seats_in_list} student${r.students - r.seats_in_list === 1 ? " has" : "s have"} none)` : ""}.`);
+    const other = r.warnings.filter((w) => !w.includes("was skipped"));
+    if (other.length) notes.push(other.join(" "));
+    $("cls-note").textContent = notes.join(" ");
+    $("cls-note").hidden = !notes.length;
+  }
+  if (usable) showClassOptions();
+  update();
+}
+
+const sameKey = (a, b) => a.toLowerCase().replace(/[^a-z0-9]/g, "") === b.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+function showClassOptions() {
+  const r = cls.summary;
+  const idNow = cls.id || r.number_column || r.detected_number_column || "";
+  const n = r.students || r.rows;
+  // seats
+  $("randomize").checked = cls.randomize;
+  const labels = seatLabels();
+  $("randomize-sub").textContent = labels.length
+    ? `Each student gets a random seat from your ${labels.length} seat label${labels.length === 1 ? "" : "s"}, printed on their card and the attendance sheet.`
+    : `Each student gets a random seat from 1 to ${n}, printed on their card and the attendance sheet` +
+      (r.seat_column ? ` (in place of the “${r.seat_column}” column).` : ".");
+  const count = $("seat-count");
+  count.hidden = !labels.length;
+  if (labels.length) {
+    const short = r.students && labels.length < r.students;
+    count.classList.toggle("bad", !!short);
+    count.textContent = short ? `${labels.length} seat${labels.length === 1 ? "" : "s"} for ${r.students} students: add ${r.students - labels.length} more.`
+      : `${labels.length} seats for ${r.students || "the"} students` + (r.students && labels.length > r.students ? ` (${labels.length - r.students} ${labels.length - r.students === 1 ? "stays" : "stay"} empty).` : ".");
+  }
+  // student ID column
+  const sel = $("id-col");
+  const want = cls.id || "";
+  sel.replaceChildren(...[["", `Found automatically${r.detected_number_column ? `: ${r.detected_number_column}` : " (none found)"}`],
+    ...r.columns.filter((c) => c !== r.name_column).map((c) => [c, c])].map(([v, t]) => new Option(t, v, false, v === want)));
+  $("id-default").textContent = r.detected_number_column ? `Default: ${r.detected_number_column}` : "No column has a student-number heading: choose one.";
+  // QR fields
+  $("qr-fixed").replaceChildren(...[r.name_column || "Student name", idNow, "Card serial"].filter(Boolean).map((t) => chip(t, "always")));
+  const extra = r.columns.filter((c) => c !== r.name_column && !sameKey(c, idNow) && !(r.name_column || "").includes(c));
+  $("qr-extra").replaceChildren(...extra.map((c) => {
+    const l = document.createElement("label");
+    l.className = "check";
+    l.innerHTML = `<input type="checkbox"><span class="label"></span>`;
+    l.querySelector(".label").textContent = c;
+    const box = l.querySelector("input");
+    box.checked = cls.qr.some((q) => sameKey(q, c));
+    box.addEventListener("change", () => {
+      cls.qr = extra.filter((x) => (x === c ? box.checked : cls.qr.some((q) => sameKey(q, x))));
+      cls.state = "reading"; showClass(); inspectClass();
+    });
+    return l;
+  }));
+  // attendance sheet
+  const cols = attendanceColumns();
+  $("att-cols").replaceChildren(...cols.map((c) => {
+    const li = chip(c.label, c.why, c.removable ? () => { cls.att = cls.att.filter((a) => !sameKey(a, c.label)); showClassOptions(); update(); } : null);
+    return li;
+  }));
+  const addable = r.columns.filter((c) => !cols.some((x) => sameKey(x.label, c)) && c !== r.name_column && !sameKey(c, idNow));
+  const add = $("att-add");
+  const keep = add.value;
+  add.replaceChildren(...addable.map((c) => new Option(`${c} (from the class list)`, c)), new Option("A blank column to fill in…", "\u0000blank"));
+  if ([...add.options].some((o) => o.value === keep)) add.value = keep;
+  $("att-blank").hidden = add.value !== "\u0000blank";
+  // sort
+  const sort = $("att-sort");
+  const sortable = [...cols.filter((c) => c.sortable).map((c) => c.label),
+    ...r.columns.filter((c) => !cols.some((x) => sameKey(x.label, c)) && c !== r.name_column && !sameKey(c, idNow))];
+  const groups = [new Option("Class list order", "")];
+  for (const c of sortable) groups.push(new Option(c, c));
+  sort.replaceChildren(...groups);
+  const match = sortable.find((c) => cls.sort && sameKey(c, cls.sort));
+  if (cls.sort && !match) sort.append(new Option(cls.sort, cls.sort));   // from a configuration
+  sort.value = match || cls.sort || "";
+  $("att-dir").value = cls.desc ? "desc" : "asc";
+  $("att-dir").disabled = !sort.value;
+  for (const o of document.querySelectorAll('input[name="orient"]')) o.checked = o.value === cls.orient;
+}
+
+// the attendance sheet's columns as the program makes them
+function attendanceColumns() {
+  const r = cls.summary;
+  const idNow = cls.id || r.number_column || r.detected_number_column || "student ID";
+  const cols = [{ label: "Student Name", why: "always", sortable: true },
+    { label: "Student Number", why: `always: ${idNow}`, sortable: true }];
+  const seatAdded = cls.att.some((a) => ["seat", "seatnumber", "seatno"].includes(a.toLowerCase().replace(/[^a-z0-9]/g, "")));
+  if (cls.randomize && !seatAdded) cols.push({ label: "Seat", why: "seats are randomized", sortable: true });
+  for (const a of cls.att) {
+    if (["studentname", "name", "fullname", "studentnumber"].includes(a.toLowerCase().replace(/[^a-z0-9]/g, "")) || sameKey(a, idNow)) continue;
+    const inList = r.columns.some((c) => sameKey(c, a));
+    cols.push({ label: a, why: inList ? "" : "blank", removable: true, sortable: inList || ["seat", "seatnumber", "seatno"].includes(a.toLowerCase().replace(/[^a-z0-9]/g, "")) });
+  }
+  cols.push({ label: "Signature", why: "always", sortable: false });
+  return cols;
+}
+
+function chip(text, why, remove) {
+  const li = document.createElement("li");
+  li.className = "chip" + (remove ? "" : " locked");
+  const t = document.createElement("span");
+  t.textContent = text;
+  li.append(t);
+  if (why) { const w = document.createElement("span"); w.className = "why"; w.textContent = why; li.append(w); }
+  if (remove) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-label", `Remove ${text}`);
+    b.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2 2 10" stroke="currentColor" stroke-width="1.8"/></svg>';
+    b.addEventListener("click", remove);
+    li.append(b);
+  }
+  return li;
+}
+
+function classProblem() {
+  if (!classFile) return "";
+  if (cls.state === "reading") return "Reading the class list…";
+  if (cls.state === "error") return "Fix the class list, or choose its student ID column under Class list options.";
+  if (cls.randomize) {
+    const labels = seatLabels();
+    if (labels.length && cls.summary && labels.length < cls.summary.students)
+      return `Add seat labels: ${labels.length} for ${cls.summary.students} students.`;
+  }
+  return "";
+}
+
+function classArgs() {
+  if (!classFile) return [];
+  const a = [];
+  if (cls.id) a.push("--student-id-column", cls.id);
+  if (cls.qr.length) a.push("--add-qr-field", csvJoin(cls.qr));
+  if (cls.randomize) {
+    const labels = seatLabels();
+    if (labels.length) a.push("--seat-labels", csvJoin(labels));
+    else a.push("--randomize-seats");
+  }
+  if (cls.att.length) a.push("--add-attendance-field", csvJoin(cls.att));
+  if (cls.sort) a.push("--attendance-sort", csvJoin([cls.sort + (cls.desc ? " desc" : "")]));
+  if (cls.orient !== "portrait") a.push("--attendance-orientation", cls.orient);
+  return a;
+}
+
+$("randomize").addEventListener("change", () => { cls.randomize = $("randomize").checked; showClass(); });
+$("seat-labels").addEventListener("input", () => {
+  if ($("seat-labels").value.trim() && !cls.randomize) cls.randomize = true;
+  showClassOptions(); update();
+});
+$("id-col").addEventListener("change", () => { cls.id = $("id-col").value; cls.state = "reading"; showClass(); inspectClass(); });
+$("att-add").addEventListener("change", () => { $("att-blank").hidden = $("att-add").value !== "\u0000blank"; if (!$("att-blank").hidden) $("att-blank").focus(); });
+function addAttendance() {
+  const v = $("att-add").value === "\u0000blank" ? $("att-blank").value.trim() : $("att-add").value;
+  if (!v || attendanceColumns().some((c) => sameKey(c.label, v))) { $("att-blank").focus(); return; }
+  cls.att.push(v);
+  $("att-blank").value = "";
+  showClassOptions(); update();
+}
+$("att-add-btn").addEventListener("click", addAttendance);
+$("att-blank").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addAttendance(); } });
+$("att-sort").addEventListener("change", () => { cls.sort = $("att-sort").value; $("att-dir").disabled = !cls.sort; update(); });
+$("att-dir").addEventListener("change", () => { cls.desc = $("att-dir").value === "desc"; update(); });
+for (const o of document.querySelectorAll('input[name="orient"]')) o.addEventListener("change", () => { if (o.checked) cls.orient = o.value; update(); });
 
 // ------------------------------------------------------------------ options
 
@@ -330,7 +586,8 @@ function update() {
   document.querySelector('[data-step="blanks"][data-by="-1"]').disabled = b <= 0;
   const quizReady = quiz.state === "ready";
   const poolProblem = quizReady ? showPool() : "";
-  const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem;
+  const classIssue = classProblem();
+  const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem && !classIssue;
   $("generate").disabled = !ok;
   $("why").textContent = !exportFile ? "Choose the quiz export to continue."
     : !ready ? "Generate is ready once the exam maker has loaded."
@@ -338,7 +595,7 @@ function update() {
     : quiz.state === "choose" ? "Choose which quiz to print."
     : !quizReady ? "Reading the quiz…"
     : !(hasClass || b > 0) ? "Choose a class list or at least one blank card."
-    : poolProblem;
+    : poolProblem || classIssue;
 }
 
 // the options for a run, without the files: the configuration that can be saved and loaded
@@ -346,6 +603,7 @@ function options() {
   const a = [...layoutArgs(layout)];
   if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
   if (classFile && mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
+  a.push(...classArgs());
   if (blanks() > 0) a.push("--blank-cards", String(blanks()));
   if (!extras.includes("--use-item-banks")) a.push(...poolArgs());
   return [...a, ...extras];
@@ -514,11 +772,12 @@ function loadConfig(name, textIn) {
   // --name=value -> --name value
   const t = tokens.flatMap((x) => (x.startsWith("--") && x.includes("=") ? [x.slice(0, x.indexOf("=")), x.slice(x.indexOf("=") + 1)] : [x]));
   const got = {}, rest = [], ignored = [];
-  const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o"]);
+  const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
+    "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation"]);
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
-    if (o === "--password") { got[o] = true; continue; }
+    if (o === "--password" || o === "--randomize-seats") { got[o] = true; continue; }
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
     rest.push(o);
@@ -538,6 +797,18 @@ function loadConfig(name, textIn) {
   if (variants) $("variants").value = clamp($("variants"), Number(v));
   $("blanks").value = clamp($("blanks"), Number(got["--blank-cards"] || 0) || 0);
   extras = rest;
+  // class-list options (checked against the class list once it is read)
+  cls.id = got["--student-id-column"] || "";
+  cls.qr = csvSplit(got["--add-qr-field"] || "");
+  cls.randomize = !!got["--randomize-seats"] || "--seat-labels" in got;
+  $("seat-labels").value = csvSplit(got["--seat-labels"] || "").join("\n");
+  cls.att = csvSplit(got["--add-attendance-field"] || "");
+  const sortBy = csvSplit(got["--attendance-sort"] || "");
+  const sm = (sortBy[0] || "").match(/^(-)?\s*(.*?)(?:\s+(desc|descending|asc|ascending))?$/i);
+  cls.sort = sm ? sm[2] : "";
+  cls.desc = !!sm && (!!sm[1] || /^desc/i.test(sm[3] || ""));
+  cls.orient = (got["--attendance-orientation"] || "portrait").toLowerCase() === "landscape" ? "landscape" : "portrait";
+  if ($("seat-labels").value) $("seat-details").open = true;
   pending = { quiz: got["--quiz"] ? Number(got["--quiz"]) : null, maxItems: got["--max-items"] || null, titleMap: got["--title-map"] || null };
   configName = name;
   // say what was loaded
@@ -547,11 +818,16 @@ function loadConfig(name, textIn) {
   if (pending.maxItems) parts.push(`${pending.maxItems} questions per exam`);
   if (pending.titleMap) parts.push("simulated question banks");
   if (pending.quiz) parts.push(`quiz ${pending.quiz} of the export`);
+  if (cls.randomize) parts.push($("seat-labels").value ? "seats from seat labels" : "randomized seats");
+  if (cls.id || cls.qr.length) parts.push("class list options");
+  if (cls.att.length || cls.sort || cls.orient !== "portrait") parts.push("attendance sheet options");
+  if (sortBy.length > 1) parts.push(`sorted by ${sortBy[0]} only (the page sorts by one column)`);
   let msg = `Loaded ${name}: ${parts.join(", ")}.`;
   if (extras.length) msg += ` Also used when generating: ${extras.join(" ")}.`;
   if (got["--password"]) msg += " The answer key was password protected; you are asked for a password when you generate.";
   if (ignored.length) msg += ` Not used here (choose the files on this page): ${ignored.join(", ")}.`;
   showConfigState(msg, false);
+  if (classFile) { cls.state = "reading"; showClass(); if (ready) inspectClass(); }
   // the export may already be open
   if (quiz.state === "choose" && pending.quiz && pending.quiz <= quiz.list.length) {
     const radio = document.querySelector(`#quiz-list input[value="${pending.quiz}"]`);
@@ -600,6 +876,11 @@ function applyPendingPool() {
   if (p.titleMap || p.maxItems) $("pool").open = true;
 }
 
+function showConfigNote(note) {
+  if ($("config-state").hidden) showConfigState(note, true);
+  else if (!$("config-text").textContent.includes(note)) showConfigState($("config-text").textContent + " " + note, true);
+}
+
 function showConfigState(msg, bad) {
   $("config-text").textContent = msg;
   $("config-state").classList.toggle("bad", bad);
@@ -619,6 +900,9 @@ $("config-file").addEventListener("change", async () => {
 });
 $("config-forget").addEventListener("click", () => {
   extras = []; pending = null; configName = "";
+  Object.assign(cls, { id: "", qr: [], randomize: false, att: [], sort: "", desc: false, orient: "portrait" });
+  $("seat-labels").value = "";
+  if (classFile) { cls.state = "reading"; showClass(); if (ready) inspectClass(); }
   $("config-state").hidden = true;
   update();
 });
@@ -764,6 +1048,7 @@ worker.onmessage = ({ data }) => {
     $("engine-detail").textContent = `· loaded in ${data.seconds.toFixed(0)} s`;
     $("version-line").textContent = `MasterTest Web ${data.spec.version}`;
     if (exportFile && quiz.state === "reading") { showQuiz(); inspectExport(); }
+    if (classFile && cls.state === "reading") { showClass(); inspectClass(); }
     update();
   } else if (data.type === "error") {
     $("engine-state").textContent = "Could not start";
@@ -772,6 +1057,8 @@ worker.onmessage = ({ data }) => {
     onQuizzes(data);
   } else if (data.type === "summary") {
     onSummary(data);
+  } else if (data.type === "classlist") {
+    onClasslist(data);
   } else if (data.type === "log") {
     $("log").textContent += data.text + "\n";
   } else if (data.type === "done") {

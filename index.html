@@ -281,6 +281,40 @@ dialog#pw-dialog::backdrop { background: rgba(15, 27, 45, .45); }
 .pw-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .6rem; margin-top: 1rem; }
 .pw-actions .primary { font-size: 1rem; padding: .65rem 1.4rem; }
 
+/* the class list */
+.sum-kinds .k { color: var(--muted); }
+.sum-kinds strong { color: var(--ink); }
+.class-opts { margin-top: .9rem; display: flex; flex-direction: column; gap: .8rem; }
+.class-opts .pool { margin-top: 0; }
+.seats-check { padding: .2rem 0; }
+.summary-note { font-weight: 400; color: var(--muted); font-size: .88rem; }
+.field-label { display: block; font-weight: 700; margin: .9rem 0 .4rem; font-size: .95rem; }
+textarea#seat-labels { width: 100%; font: inherit; font-size: .95rem; padding: .6rem .7rem; border: 0; border-bottom: 2px solid var(--ink);
+  background: var(--cell-soft); color: var(--ink); resize: vertical; min-height: 7rem; }
+textarea#seat-labels:focus-visible, .text:focus-visible, .select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.howto { margin: .5rem 0 0; padding-left: 1.2rem; }
+.howto li { margin: .15rem 0; }
+.howto code, .hint code { font-size: .9em; background: var(--cell-soft); padding: 0 .25rem; }
+.select, .text { font: inherit; font-size: .95rem; padding: .4rem .6rem; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); max-width: 100%; }
+.text { min-width: 12rem; }
+button.small { padding: .4rem 1rem; font-size: .92rem; }
+button.secondary:disabled { border-color: var(--rule); color: var(--muted); cursor: default; }
+.qr-fields { margin-top: 1rem; }
+.qr-fields legend, .orient legend { font-weight: 700; font-size: .95rem; margin-bottom: .45rem; }
+.orient { margin-top: 1rem; }
+.orient legend { font-size: .95rem; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .6rem; padding: 0; }
+.chip { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .35rem .25rem .7rem; background: var(--cell-soft);
+  border: 1.5px solid var(--rule); font-size: .9rem; }
+.chip.locked { background: var(--paper); border-style: dashed; padding-right: .7rem; }
+.chip .why { color: var(--muted); font-size: .8rem; }
+.chip button { font: inherit; width: 1.5rem; height: 1.5rem; border: 0; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.chip button:hover { color: var(--wrong); }
+.chip button:focus-visible { outline: 2px solid var(--accent); }
+.choices.tight { gap: .35rem; }
+.choices.tight .check { font-size: .95rem; }
+.choices.tight .check input { width: 1.1rem; height: 1.1rem; }
+
 @media (max-width: 640px) {
   :root { font-size: 16px; }
   .sheet { padding: 2.5rem 1rem 3rem; }
@@ -387,6 +421,78 @@ dialog#pw-dialog::backdrop { background: rgba(15, 27, 45, .45); }
             </div>
           </div>
         </details>
+      </div>
+      <div class="quiz" id="classinfo" aria-live="polite" hidden>
+        <p class="quiz-status" id="class-status"></p>
+        <div class="summary" id="class-summary" hidden>
+          <div class="count"><span class="n" id="cls-n"></span><span class="unit" id="cls-unit">students</span></div>
+          <div>
+            <p class="sum-title" id="cls-title"></p>
+            <p class="sum-kinds"><span class="k">Student ID column:</span> <strong id="cls-id"></strong> <span id="cls-id-how"></span></p>
+            <p class="sum-kinds"><span class="k">In each card's QR code:</span> <span id="cls-qr"></span></p>
+            <p class="sum-kinds"><span class="k">Columns:</span> <span id="cls-cols"></span></p>
+            <p class="sum-note" id="cls-note" hidden></p>
+          </div>
+        </div>
+        <div class="class-opts" id="class-opts" hidden>
+          <label class="check seats-check"><input type="checkbox" id="randomize">
+            <span><span class="label">Randomize seats</span>
+            <span class="sub" id="randomize-sub">Each student gets a random seat, printed on their card and the attendance sheet.</span></span></label>
+          <details class="pool" id="seat-details">
+            <summary>Specify Seat Labels</summary>
+            <div class="pool-body">
+              <p class="hint pool-hint">Use this when you want specific seat numbers, or alphanumeric seats such as <q>A4, B6</q> or <q>Row H, Seat 5</q>. Without labels the seats are numbered 1 to the number of students. Labels are only used when <strong>Randomize seats</strong> is ticked; typing them ticks it.</p>
+              <label for="seat-labels" class="field-label">Seat labels</label>
+              <textarea id="seat-labels" rows="6" spellcheck="false" placeholder="A1, A2, A3, A4, B1, B2, B3, B4&#10;&#10;or one seat per line:&#10;Row H, Seat 5&#10;Row H, Seat 6"></textarea>
+              <ul class="hint howto">
+                <li>Separate seats with commas: <code>A1, A2, A3</code>.</li>
+                <li>Or put each seat on its own line. Then a seat may contain commas, such as <code>Row H, Seat 5</code>.</li>
+                <li>You need at least one seat per student. Repeated labels count once; spare seats stay empty.</li>
+              </ul>
+              <p class="banks-total" id="seat-count" hidden></p>
+            </div>
+          </details>
+          <details class="pool" id="class-details">
+            <summary>Class list options</summary>
+            <div class="pool-body">
+              <div class="pool-row">
+                <label for="id-col">Student ID column:</label>
+                <select id="id-col" class="select"></select>
+                <span class="pool-of" id="id-default"></span>
+              </div>
+              <p class="hint pool-hint">The number printed on each card and used by MasterTest Marker to match marks to students. Every student needs a different one.</p>
+              <fieldset class="qr-fields">
+                <legend>Fields in each card's QR code</legend>
+                <div class="chips" id="qr-fixed"></div>
+                <div class="choices tight" id="qr-extra"></div>
+                <p class="hint pool-hint">The student name, ID and card serial are always included. Extra fields appear in MasterTest Marker's results; each one makes the QR code a little denser.</p>
+              </fieldset>
+            </div>
+          </details>
+          <details class="pool" id="att-details">
+            <summary>Attendance Sheet Options: <span class="summary-note">an attendance sheet is made whenever a class list is loaded.</span></summary>
+            <div class="pool-body">
+              <p class="field-label">Columns on the sheet, left to right</p>
+              <ul class="chips" id="att-cols" aria-label="Attendance sheet columns"></ul>
+              <div class="pool-row">
+                <label for="att-add">Add a column:</label>
+                <select id="att-add" class="select"></select>
+                <input type="text" id="att-blank" class="text" placeholder="Column name, e.g. Time in" hidden aria-label="Name of the blank column">
+                <button type="button" class="secondary small" id="att-add-btn">Add</button>
+              </div>
+              <div class="pool-row">
+                <label for="att-sort">Sort by:</label>
+                <select id="att-sort" class="select"></select>
+                <select id="att-dir" class="select" aria-label="Sort direction"><option value="asc">Ascending (A–Z, 1–9)</option><option value="desc">Descending (Z–A, 9–1)</option></select>
+              </div>
+              <fieldset class="paper-row orient">
+                <legend>Page orientation:</legend>
+                <label class="bubble inline"><input type="radio" name="orient" value="portrait" checked><span class="label">Portrait</span></label>
+                <label class="bubble inline"><input type="radio" name="orient" value="landscape"><span class="label">Landscape</span><span class="sub">room for more columns</span></label>
+              </fieldset>
+            </div>
+          </details>
+        </div>
       </div>
     </section>
 
