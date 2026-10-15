@@ -67,6 +67,9 @@ header { display: flex; flex-wrap: wrap; justify-content: space-between; align-i
 .logo { display: block; box-sizing: content-box; width: min(260px, 64vw); height: auto;
   background: var(--logo-bg); padding: var(--logo-pad); border-radius: 4px; }
 .brand .product { font-weight: 700; font-size: 1.05rem; letter-spacing: .01em; }
+.brand .version { font-weight: 400; font-size: .78rem; color: var(--muted); margin-left: .3rem; letter-spacing: 0; }
+.ignore-row { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px dashed var(--rule); }
+.ignore-row.off .check { opacity: .45; cursor: not-allowed; }
 .engine { font-size: .85rem; color: var(--muted); text-align: right; }
 .engine strong { color: var(--ink); }
 
@@ -368,7 +371,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
   <header>
     <div class="brand">
       <img class="logo" src="mastertest-logo.png" alt="MasterTest.ca" width="260" height="26">
-      <span class="product">MasterTest Web</span>
+      <span class="product">MasterTest Web <small class="version" id="version-top"></small></span>
     </div>
     <div class="engine" role="status" aria-live="polite"><strong id="engine-state">Starting</strong> <span id="engine-detail">· loading the exam maker (about 21 MB the first time)</span></div>
   </header>
@@ -440,6 +443,11 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
               <span class="pool-of" id="limit-of"></span>
             </div>
             <p class="hint pool-hint" id="limit-hint">Each exam gets this many questions, drawn at random from the whole quiz.</p>
+            <div class="ignore-row" id="ignore-row">
+              <label class="check"><input type="checkbox" id="ignore-banks">
+                <span><span class="label">Ignore Item Banks <span class="tag">[“pick N” rules]</span></span>
+                <span class="sub" id="ignore-sub"></span></span></label>
+            </div>
             <div class="banks" id="banks">
               <div class="banks-side">
                 <label class="check"><input type="checkbox" id="simulate">
@@ -739,7 +747,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 
   <footer>
     <span id="version-line">MasterTest Web</span>
-    <span>Nothing is stored on this computer or sent to a server. <a href="advanced.html">All options</a></span>
+    <span>Nothing is stored on this computer or sent to a server.</span>
   </footer>
 </main>
 <script src="wizard.js"></script>

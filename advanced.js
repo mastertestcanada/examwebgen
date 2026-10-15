@@ -67,7 +67,7 @@ const LABELS = {
   "--blank-cards": "Blank cards",
   "--no-quiz-instructions": "Leave out the quiz instructions",
   "--max-items": "A random selection of questions",
-  "--use-item-banks": "Follow the export's item banks",
+  "--ignore-item-banks": "Print every question of the item banks (ignore their \"pick N\" rules)",
   "--title-map": "Choose questions by title (title map)",
 };
 

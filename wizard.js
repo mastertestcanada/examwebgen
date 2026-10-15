@@ -258,8 +258,8 @@ function showQuiz() {
     $("sum-title").textContent = s.title;
     $("sum-kinds").textContent = Object.entries(s.kinds).map(([k, n]) => `${n} ${k}`).join(", ");
     const notes = [];
-    if (s.per_exam_with_banks !== null && s.per_exam_with_banks !== s.questions)
-      notes.push(`The quiz draws ${s.per_exam_with_banks} of them from question groups; every question is printed unless you alter the question pool.`);
+    if (s.pick_rules.length)
+      notes.push(`Each exam gets ${s.per_exam_with_banks} of them: the quiz's item banks pick some of their questions (“pick N”). Alter the question pool to change this.`);
     if (s.omitted) notes.push(`${s.omitted} question${s.omitted === 1 ? " was" : "s were"} left out because ${s.omitted === 1 ? "it" : "they"} cannot be printed: ` +
       s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; "));
     if (!s.merged1_ok) notes.push(`At least one question has ${s.max_options} options, so the Merged One Column and Merged Two Column Layouts are not available. ` +
@@ -806,7 +806,7 @@ function options() {
   a.push(...pageArgs());
   a.push(...advArgs());
   if (blanks() > 0) a.push("--blank-cards", String(blanks()));
-  if (!extras.includes("--use-item-banks")) a.push(...poolArgs());
+  a.push(...poolArgs());
   return [...a, ...extras];
 }
 
@@ -818,15 +818,20 @@ function argv(password) {
 
 // --max-items (a number of questions drawn from the whole quiz) or --title-map (questions with the
 // same name form a bank; a number drawn from each). The program allows one of them at a time.
-const pool = { total: 0, titles: [], classic: false };
+const pool = { total: 0, titles: [], classic: false, picks: [], perExam: 0 };
+// the number of questions an exam gets when the pool is not altered
+const poolDefault = () => (pool.picks.length && !$("ignore-banks").checked ? pool.perExam : pool.total);
 
 function resetPool(s) {
   pool.total = s.questions;
   pool.titles = s.titles;
   pool.classic = s.engine === "classic";
+  pool.picks = s.pick_rules;
+  pool.perExam = s.per_exam_with_banks || s.questions;
+  $("ignore-banks").checked = false;
   $("limit").max = String(s.questions);
-  $("limit").value = String(s.questions);
-  $("limit-of").textContent = `of ${s.questions} question${s.questions === 1 ? "" : "s"} (default: all ${s.questions})`;
+  $("limit").value = String(poolDefault());
+  showLimitDefault();
   $("simulate").checked = false;
   $("simulate").disabled = !pool.classic;
   $("simulate-sub").textContent = pool.classic
@@ -852,17 +857,43 @@ function counts() {
   return [...$("titles").querySelectorAll("input")].map((i) => i.value.trim() === "" ? NaN : Number(i.value));
 }
 
+function showLimitDefault() {
+  const d = poolDefault();
+  $("limit-of").textContent = `of ${pool.total} question${pool.total === 1 ? "" : "s"} (default: ` +
+    (d === pool.total ? `all ${pool.total})` : `${d}, following the item banks)`);
+}
+
+$("ignore-banks").addEventListener("change", () => {
+  // the limit follows the default it was showing
+  const before = $("ignore-banks").checked ? pool.perExam : pool.total;
+  if (Number($("limit").value) === before) $("limit").value = String(poolDefault());
+  showLimitDefault();
+  update();
+});
+
 // shows the state of the pool controls; returns why Generate cannot go ahead, or ""
 function showPool() {
   const sim = $("simulate").checked;
-  const banks = extras.includes("--use-item-banks");
-  $("limit-row").classList.toggle("off", sim || banks);
-  for (const el of [$("limit"), ...document.querySelectorAll('[data-step="limit"]')]) el.disabled = sim || banks;
+  const limited = !sim && Number($("limit").value) !== poolDefault();
+  // ignoring item banks: only when the quiz has "pick N" rules, and not while another choice replaces them
+  const picks = pool.picks;
+  const ignoreOff = !picks.length || sim || limited;
+  $("ignore-banks").disabled = ignoreOff;
+  $("ignore-row").classList.toggle("off", ignoreOff);
+  const rules = picks.slice(0, 4).map((r) => `“${r.name}” picks ${r.pick} of ${r.of}`).join("; ") + (picks.length > 4 ? `; and ${picks.length - 4} more` : "");
+  $("ignore-sub").textContent = !picks.length
+    ? "For quizzes whose item banks or question groups pick some of their questions (“pick N”). This quiz has none, so every question is used."
+    : (sim ? "Not used while question banks are simulated: the names decide. "
+      : limited ? "Not used while the test is limited: the questions are drawn from the whole quiz. "
+      : "") +
+      `By default each exam follows the quiz's item banks (${rules}), giving ${pool.perExam} questions per exam. Tick to print every question of the banks instead (${pool.total} per exam).`;
+  $("limit-row").classList.toggle("off", sim);
+  for (const el of [$("limit"), ...document.querySelectorAll('[data-step="limit"]')]) el.disabled = sim;
   $("banks").classList.toggle("off", !pool.classic);
   $("titles").classList.toggle("off", !sim);
   for (const i of $("titles").querySelectorAll("input")) i.disabled = !sim;
-  $("limit-hint").textContent = banks ? "The loaded configuration uses --use-item-banks: the quiz's own question groups decide."
-    : sim ? "Not used while question banks are simulated."
+  $("limit-hint").textContent = sim ? "Not used while question banks are simulated."
+    : pool.picks.length && !$("ignore-banks").checked ? "Each exam gets this many questions. Changing the number draws them at random from the whole quiz instead of following the item banks."
     : "Each exam gets this many questions, drawn at random from the whole quiz.";
   const total = $("banks-total");
   total.hidden = !sim;
@@ -881,7 +912,6 @@ function showPool() {
     total.textContent = `Each exam: ${sum} question${sum === 1 ? "" : "s"} from ${used} of ${pool.titles.length} name${pool.titles.length === 1 ? "" : "s"}.`;
     return "";
   }
-  if (banks) return "";
   const n = Number($("limit").value);
   if (!Number.isInteger(n) || n < 1 || n > pool.total) return `Limit the test to a number of questions from 1 to ${pool.total}.`;
   return "";
@@ -896,7 +926,8 @@ function poolArgs() {
     return ["--title-map", map];
   }
   const n = Number($("limit").value);
-  return Number.isInteger(n) && n >= 1 && n < pool.total ? ["--max-items", String(n)] : [];
+  if (Number.isInteger(n) && n >= 1 && n <= pool.total && n !== poolDefault()) return ["--max-items", String(n)];
+  return pool.picks.length && $("ignore-banks").checked ? ["--ignore-item-banks"] : [];
 }
 
 $("simulate").addEventListener("change", update);
@@ -982,7 +1013,8 @@ function loadConfig(name, textIn) {
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
-    if (["--password", "--randomize-seats", "--pad-options", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
+    if (o === "--use-item-banks") continue;   // the default since 0.3.18
+    if (["--password", "--ignore-item-banks", "--randomize-seats", "--pad-options", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
     if (o === "--option-dot") continue;   // the default
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
@@ -1015,7 +1047,8 @@ function loadConfig(name, textIn) {
   cls.desc = !!sm && (!!sm[1] || /^desc/i.test(sm[3] || ""));
   cls.orient = (got["--attendance-orientation"] || "portrait").toLowerCase() === "landscape" ? "landscape" : "portrait";
   if ($("seat-labels").value) $("seat-details").open = true;
-  pending = { quiz: got["--quiz"] ? Number(got["--quiz"]) : null, maxItems: got["--max-items"] || null, titleMap: got["--title-map"] || null };
+  pending = { quiz: got["--quiz"] ? Number(got["--quiz"]) : null, maxItems: got["--max-items"] || null, titleMap: got["--title-map"] || null,
+    ignore: !!got["--ignore-item-banks"] };
   configName = name;
   // say what was loaded
   const parts = [`${layoutName(LAYOUTS.find((l) => l.id === layout.id))} on ${iso ? "A4/A3" : "letter/tabloid"} paper`];
@@ -1023,6 +1056,7 @@ function loadConfig(name, textIn) {
   if (Number(got["--blank-cards"]) > 0) parts.push(`${got["--blank-cards"]} blank card${got["--blank-cards"] === "1" ? "" : "s"}`);
   if (pending.maxItems) parts.push(`${pending.maxItems} questions per exam`);
   if (pending.titleMap) parts.push("simulated question banks");
+  if (pending.ignore) parts.push("item banks ignored");
   if (pending.quiz) parts.push(`quiz ${pending.quiz} of the export`);
   if (cls.randomize) parts.push($("seat-labels").value ? "seats from seat labels" : "randomized seats");
   if (cls.id || cls.qr.length) parts.push("class list options");
@@ -1085,13 +1119,17 @@ function applyPendingPool() {
         if (missing.length) problems.push(`this quiz has no questions named ${missing.map((m) => `“${m}”`).join(", ")}`);
       } else if (!/=/.test(p.titleMap)) problems.push(`its title map is a file (${p.titleMap}); set the numbers here instead`);
     }
-  } else if (p.maxItems) {
+  } else if (p.ignore) {
+    if (pool.picks.length) { $("ignore-banks").checked = true; $("limit").value = String(poolDefault()); showLimitDefault(); }
+    else problems.push("it ignores item banks, but this quiz has no “pick N” rules");
+  }
+  if (!p.titleMap && p.maxItems) {
     const n = Number(p.maxItems);
     if (Number.isInteger(n) && n >= 1 && n <= pool.total) $("limit").value = String(n);
     else problems.push(`it limits the test to ${p.maxItems} questions, but this quiz has ${pool.total}`);
   }
   if (problems.length) showConfigState($("config-text").textContent + " Check the question pool: " + problems.join("; ") + ".", true);
-  if (p.titleMap || p.maxItems) $("pool").open = true;
+  if (p.titleMap || p.maxItems || p.ignore) $("pool").open = true;
 }
 
 function showConfigNote(note) {
@@ -1271,6 +1309,7 @@ worker.onmessage = ({ data }) => {
     $("engine-state").textContent = "Ready";
     $("engine-detail").textContent = `· loaded in ${data.seconds.toFixed(0)} s`;
     $("version-line").textContent = `MasterTest Web ${data.spec.version}`;
+    $("version-top").textContent = data.spec.version;
     if (exportFile && quiz.state === "reading") { showQuiz(); inspectExport(); }
     if (classFile && cls.state === "reading") { showClass(); inspectClass(); }
     update();
@@ -1291,6 +1330,12 @@ worker.onmessage = ({ data }) => {
     finish(false, data);
   }
 };
+
+// the version, at once (the worker reports it again once loaded)
+fetch("build.json", { cache: "no-cache" }).then((r) => r.json()).then((b) => {
+  $("version-top").textContent = b.version;
+  if ($("version-line").textContent === "MasterTest Web") $("version-line").textContent = `MasterTest Web ${b.version}`;
+}).catch(() => {});
 
 buildLayouts();
 showPrintDefaults();
