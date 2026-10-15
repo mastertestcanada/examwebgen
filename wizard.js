@@ -600,8 +600,41 @@ const marginMode = () => document.querySelector('input[name="po-margin-mode"]:ch
 const aciMode = () => document.querySelector('input[name="po-aci"]:checked').value;
 let aciFiles = [];      // the answer-card instructions file and its images
 const PO_FLAGS = { "po-points": "--show-points", "po-noinstr": "--no-quiz-instructions" };
-const STANDARD_CALC = "Write your answer in the boxes on the answer card: one digit, minus sign or decimal point per box.";
-const STANDARD_FILL = "Write your answer in the box on the answer card.";
+// ------------------------------------------------------------------ print language and decimal mark
+
+// --print-language: the language of the printed instructions, headings and labels (the quiz is
+// printed as written); --decimal-mark: point or comma, by default the language's (French: comma).
+let printLang = "en";
+let decimalChosen = null;    // "point" | "comma" when chosen on the page, else follow the language
+const langDecimal = () => (printLang === "fr" ? "comma" : "point");
+const decimalMark = () => decimalChosen || langDecimal();
+const STANDARD = {
+  calc: {
+    en: (comma) => `Write your answer in the boxes on the answer card: one digit, minus sign or ${comma ? "decimal comma" : "decimal point"} per box.`,
+    fr: (comma) => `Écrivez votre réponse dans les cases de la carte-réponse : un chiffre, un signe moins ou ${comma ? "une virgule" : "un point décimal"} par case.`,
+  },
+  fill: { en: () => "Write your answer in the box on the answer card.", fr: () => "Écrivez votre réponse dans la case de la carte-réponse." },
+};
+const standardText = (which) => STANDARD[which][printLang](decimalMark() === "comma");
+
+function langArgs() {
+  const a = [];
+  if (printLang !== "en") a.push("--print-language", printLang);
+  if (decimalMark() !== langDecimal()) a.push("--decimal-mark", decimalMark());
+  return a;
+}
+
+function showLanguage() {
+  for (const r of document.querySelectorAll('input[name="plang"]')) r.checked = r.value === printLang;
+  for (const r of document.querySelectorAll('input[name="po-decimal"]')) r.checked = r.value === decimalMark();
+  $("po-decimal-point-sub").textContent = "point" + (langDecimal() === "point" ? " (default)" : "");
+  $("po-decimal-comma-sub").textContent = "comma" + (langDecimal() === "comma" ? " (default)" : "");
+  if (typeof showPrintDefaults === "function" && layout) showPrintDefaults();
+}
+for (const r of document.querySelectorAll('input[name="plang"]'))
+  r.addEventListener("change", () => { if (r.checked) { printLang = r.value; showLanguage(); update(); } });
+for (const r of document.querySelectorAll('input[name="po-decimal"]'))
+  r.addEventListener("change", () => { if (r.checked) { decimalChosen = r.value === langDecimal() ? null : r.value; showLanguage(); update(); } });
 
 function printArgs(run) {
   const a = [...fontArgs(run)];
@@ -917,8 +950,8 @@ function showPrintDefaults() {
   const merged = layout.id.startsWith("merged");
   $("po-font-size").placeholder = merged ? "9" : "11";
   $("po-font-size-hint").textContent = `points (default ${merged ? "9 on merged sheets" : "11"})`;
-  $("po-calc").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : STANDARD_CALC;
-  $("po-fill").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : STANDARD_FILL;
+  $("po-calc").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : standardText("calc");
+  $("po-fill").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : standardText("fill");
   const iso = paper === "iso";
   const w = layout.id === "merged1" ? "180pt" : layout.id === "merged2" ? "90pt" : iso ? "91pt" : "95pt";
   $("po-width").placeholder = w;
@@ -1027,6 +1060,7 @@ function update() {
 function options(run = false) {
   const a = [...layoutArgs(layout)];
   if (quizCjk()) a.push("--cjk-region", cjkChosen());
+  a.push(...langArgs());
   if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
   if (classFile && mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
   a.push(...classArgs());
@@ -1234,7 +1268,7 @@ function loadConfig(name, textIn) {
   const got = {}, rest = [], ignored = [];
   const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
     "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation",
-    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--cjk-region", "--option-font-size", "--option-columns",
+    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--option-font-size", "--option-columns",
     "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text",
     "--margin-left", "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading",
     "--answer-card-instructions", "--page-options", "--qr-quality", "--seed"]);
@@ -1254,6 +1288,10 @@ function loadConfig(name, textIn) {
   const iso = /^a[34]/i.test(size);
   setPaper(iso ? "iso" : "traditional");
   cjkRegion = got["--cjk-region"] && got["--cjk-region"].toLowerCase() !== "auto" ? got["--cjk-region"].toLowerCase() : null;
+  printLang = (got["--print-language"] || "en").toLowerCase() === "fr" ? "fr" : "en";
+  const mark = (got["--decimal-mark"] || "").toLowerCase();
+  decimalChosen = mark === "point" || mark === "comma" ? (mark === langDecimal() ? null : mark) : null;
+  showLanguage();
   showCjk();
   const id = LAYOUT_OF(size, got["--columns"]);
   if (!LAYOUTS.find((l) => l.id === id).unavailable) selectLayout(id, false);

@@ -236,6 +236,7 @@ section.paper { padding: 1rem 0; }
 .cjk-row { margin: .9rem 0 .2rem; }
 .cjk-row legend { font-weight: 700; font-size: .95rem; margin-bottom: .45rem; }
 .cjk-row .pool-hint { flex-basis: 100%; margin-top: .4rem; }
+.plang-note { align-self: center; }
 .summary-note { flex: 1 1 18rem; line-height: 1.4; }
 .pool > summary::-webkit-details-marker { display: none; }
 .pool > summary::before { content: ""; flex: none; align-self: center; width: .5rem; height: .5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
@@ -557,6 +558,12 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         <label class="bubble inline"><input type="radio" name="paper" value="traditional" checked><span class="label">Traditional</span><span class="sub">Letter and tabloid</span></label>
         <label class="bubble inline"><input type="radio" name="paper" value="iso"><span class="label">ISO</span><span class="sub">A4 and A3</span></label>
       </fieldset>
+      <fieldset class="paper-row">
+        <legend id="plang-h">Printed in:</legend>
+        <label class="bubble inline"><input type="radio" name="plang" value="en" checked><span class="label">English</span><span class="sub">instructions, headings and labels</span></label>
+        <label class="bubble inline"><input type="radio" name="plang" value="fr"><span class="label" lang="fr">Français</span><span class="sub" lang="fr">consignes, titres et étiquettes</span></label>
+        <span class="pool-of plang-note">The quiz itself is printed as written.</span>
+      </fieldset>
     </section>
 
     <section class="block" aria-labelledby="layout-h">
@@ -613,6 +620,14 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <span role="radiogroup" aria-labelledby="po-marker-label" class="inline-radios">
               <label class="bubble inline"><input type="radio" name="po-marker" value="nodot" checked><span class="label">Off</span><span class="sub">letter only (default)</span></label>
               <label class="bubble inline"><input type="radio" name="po-marker" value="dot"><span class="label">A.</span><span class="sub">letter and period</span></label>
+            </span>
+            <span class="grid-label" id="po-decimal-label">Decimal mark:</span>
+            <span class="enclosed-row">
+              <span role="radiogroup" aria-labelledby="po-decimal-label" class="inline-radios">
+                <label class="bubble inline"><input type="radio" name="po-decimal" value="point" checked><span class="label">0.5</span><span class="sub" id="po-decimal-point-sub">point</span></label>
+                <label class="bubble inline"><input type="radio" name="po-decimal" value="comma"><span class="label">0,5</span><span class="sub" id="po-decimal-comma-sub">comma</span></label>
+              </span>
+              <span class="pool-of">for calculated-question values and the instructions for number boxes; the default follows the print language. MasterTest Marker reads either.</span>
             </span>
             <label for="po-option-columns">Option columns:</label>
             <span><input type="number" id="po-option-columns" class="text short" min="1" max="6" step="1" value="1" inputmode="numeric"> <span class="pool-of">lay each question's options out in this many columns (default 1)</span></span>
