@@ -9,6 +9,7 @@
 <style>
 @font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap;
   src: url("fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "MasterTest Enclosed"; font-display: swap; src: url("fonts/MasterTestEnclosed.ttf") format("truetype"); }
 @font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-display: swap;
   src: url("fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); }
 
@@ -228,7 +229,11 @@ section.paper { padding: 1rem 0; }
 /* altering the question pool */
 .pool { margin-top: .8rem; border: 1.5px solid var(--rule); }
 .pool > summary { cursor: pointer; font-weight: 700; padding: .65rem 1rem; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .55rem; }
-.pool > summary .summary-note { flex: 1 1 18rem; line-height: 1.4; }
+.pool > summary .enclosed-row { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; }
+.enclosed-row .enc { font-family: "MasterTest Enclosed", "Atkinson Hyperlegible", sans-serif; font-weight: 400; letter-spacing: .08em; font-size: 1.1rem; }
+.enclosed-row .pool-of { flex-basis: 100%; }
+.inline-radios.off { opacity: .45; }
+.summary-note { flex: 1 1 18rem; line-height: 1.4; }
 .pool > summary::-webkit-details-marker { display: none; }
 .pool > summary::before { content: ""; flex: none; align-self: center; width: .5rem; height: .5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
   transform: rotate(-45deg); transition: transform .15s; margin-right: .15rem; }
@@ -478,10 +483,10 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <span><span class="label">Randomize seats</span>
             <span class="sub" id="randomize-sub">Each student gets a random seat, printed on their card and the attendance sheet.</span></span></label>
           <details class="pool" id="seat-details">
-            <summary>Specify Seat Labels <span class="summary-note">Use this when you want specific seat numbers, or alphanumeric seats such as “A4, B6” or “Row H, Seat 5”. Without labels the seats are numbered 1 to the number of students. Labels are only used when Randomize seats is ticked; typing them ticks it.</span></summary>
+            <summary>Specify Seat Labels <span class="summary-note">Use this when you want seat numbers that aren't sequential e.g. (2, 4, 6), or seats with alphanumeric names like “A4, B6” or “Row H, Seat 5”. Without labels seats are numbered from 1 to <span id="seat-n">the number of students</span>. Labels are only used when Randomize seats is ticked; adding them ticks it.</span></summary>
             <div class="pool-body">
               <label for="seat-labels" class="field-label">Seat labels</label>
-              <textarea id="seat-labels" rows="6" spellcheck="false" placeholder="A1, A2, A3, A4, B1, B2, B3, B4&#10;&#10;or one seat per line:&#10;Row H, Seat 5&#10;Row H, Seat 6"></textarea>
+              <textarea id="seat-labels" rows="6" spellcheck="false"></textarea>
               <ul class="hint howto">
                 <li>Separate seats with commas: <code>A1, A2, A3</code>.</li>
                 <li>Or put each seat on its own line. Then a seat may contain commas, such as <code>Row H, Seat 5</code>.</li>
@@ -491,7 +496,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             </div>
           </details>
           <details class="pool" id="class-details">
-            <summary>Class list options</summary>
+            <summary>Class List Options <span class="summary-note">Change which field is the Student Number, export fields from the class list into the QR code (such as seat number).</span></summary>
             <div class="pool-body">
               <div class="pool-row">
                 <label for="id-col">Student ID column:</label>
@@ -500,7 +505,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
               </div>
               <p class="hint pool-hint">The number printed on each card and used by MasterTest Marker to match marks to students. Every student needs a different one.</p>
               <fieldset class="qr-fields">
-                <legend>Fields in each card's QR code</legend>
+                <legend>Fields exported into the answer card QR code <span class="summary-note">Use this if you want this information to appear in the CSV export from your phone (e.g. SIS Login ID).</span></legend>
                 <div class="chips" id="qr-fixed"></div>
                 <div class="choices tight" id="qr-extra"></div>
                 <p class="hint pool-hint">The student name, ID and card serial are always included. Extra fields appear in MasterTest Marker's results; each one makes the QR code a little denser.</p>
@@ -508,7 +513,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             </div>
           </details>
           <details class="pool" id="att-details">
-            <summary>Attendance Sheet Options: <span class="summary-note">an attendance sheet is made whenever a class list is loaded.</span></summary>
+            <summary>Attendance Sheet Options: <span class="summary-note">An attendance sheet is generated if you have loaded a class list.</span></summary>
             <div class="pool-body">
               <p class="field-label">Columns on the sheet, left to right</p>
               <ul class="chips" id="att-cols" aria-label="Attendance sheet columns"></ul>
@@ -545,7 +550,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 
     <section class="block" aria-labelledby="layout-h">
       <h2 id="layout-h">Layout</h2>
-      <p class="hint">How the questions and answers go on paper. All layouts are marked with the MasterTest Marker app.</p>
+      <p class="hint">How the questions and answers appear on paper. Every layout can be marked with the MasterTest Marker app.</p>
       <div class="carousel">
         <div class="track" id="layouts" role="radiogroup" aria-labelledby="layout-h"></div>
         <div class="nav">
@@ -575,19 +580,28 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
               </span>
             </span>
             <label for="po-font">Font:</label>
-            <span><select id="po-font" class="select"><option value="">Helvetica (default)</option><option>Times</option><option>Courier</option></select></span>
+            <span><select id="po-font" class="select font-pick" data-default="Helvetica"></select> <input type="file" id="po-font-file" accept=".ttf,.otf,.ttc" multiple hidden> <span class="pool-of" id="po-font-state"></span></span>
             <label for="po-font-size">Font size:</label>
             <span><input type="number" id="po-font-size" class="text short" min="4" max="72" step="0.5" inputmode="decimal"> <span class="pool-of" id="po-font-size-hint">points</span></span>
             <label for="po-spacing">Question spacing:</label>
             <span><input type="text" id="po-spacing" class="text short" placeholder="automatic" spellcheck="false"> <span class="pool-of">space between questions, e.g. 12pt, 0.25in, 5mm (default 0.9 × the font size)</span></span>
             <label for="po-option-font">Option font:</label>
-            <span><select id="po-option-font" class="select"><option value="">Same as the questions</option><option>Helvetica</option><option>Times</option><option>Courier</option></select> <span class="pool-of">for the option letters A, B, C…</span></span>
+            <span><select id="po-option-font" class="select font-pick" data-default="same"></select> <input type="file" id="po-option-font-file" accept=".ttf,.otf,.ttc" multiple hidden> <span class="pool-of" id="po-option-font-state">for the option letters A, B, C…</span></span>
+            <span class="grid-label">Enclosed letters:</span>
+            <span class="enclosed-row">
+              <label class="check inline"><input type="checkbox" id="po-enclosed" checked><span class="label">Use Enclosed Characters</span></label>
+              <span class="inline-radios" id="po-enclosed-style" role="radiogroup" aria-label="Enclosed letter style">
+                <label class="bubble inline"><input type="radio" name="po-enclosed-style" value="circled" checked><span class="label enc">Ⓐ Ⓑ Ⓒ Ⓓ</span><span class="sub">circled (default)</span></label>
+                <label class="bubble inline"><input type="radio" name="po-enclosed-style" value="filled"><span class="label enc">🅐 🅑 🅒 🅓</span><span class="sub">filled</span></label>
+              </span>
+              <span class="pool-of" id="po-enclosed-hint">The option letters are printed as Unicode enclosed characters, like the bubbles on the answer card. Fonts without them (most fonts) use the letters supplied with MasterTest.</span>
+            </span>
             <label for="po-option-size">Option font size:</label>
             <span><input type="number" id="po-option-size" class="text short" min="4" max="72" step="0.5" inputmode="decimal" placeholder="same"> <span class="pool-of">points (default: the font size)</span></span>
             <span class="grid-label" id="po-marker-label">Option Marker:</span>
             <span role="radiogroup" aria-labelledby="po-marker-label" class="inline-radios">
-              <label class="bubble inline"><input type="radio" name="po-marker" value="dot" checked><span class="label">A.</span><span class="sub">letter and period (default)</span></label>
-              <label class="bubble inline"><input type="radio" name="po-marker" value="nodot"><span class="label">A</span><span class="sub">letter only</span></label>
+              <label class="bubble inline"><input type="radio" name="po-marker" value="nodot" checked><span class="label">Off</span><span class="sub">letter only (default)</span></label>
+              <label class="bubble inline"><input type="radio" name="po-marker" value="dot"><span class="label">A.</span><span class="sub">letter and period</span></label>
             </span>
             <label for="po-option-columns">Option columns:</label>
             <span><input type="number" id="po-option-columns" class="text short" min="1" max="6" step="1" value="1" inputmode="numeric"> <span class="pool-of">lay each question's options out in this many columns (default 1)</span></span>

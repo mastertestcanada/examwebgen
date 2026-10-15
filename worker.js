@@ -38,6 +38,7 @@ async function run({ files, argv, password }) {
       py.FS.mkdirTree(path);
       py.unpackArchive(f.data, "zip", { extractDir: path });
     } else {
+      py.FS.mkdirTree(path.slice(0, path.lastIndexOf("/")));   // fonts/... go in folders of their own
       py.FS.writeFile(path, new Uint8Array(f.data));
     }
   }

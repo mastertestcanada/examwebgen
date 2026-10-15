@@ -411,6 +411,7 @@ function showClassOptions() {
   const idNow = cls.id || r.number_column || r.detected_number_column || "";
   const n = r.students || r.rows;
   // seats
+  $("seat-n").textContent = n ? String(n) : "the number of students";
   $("randomize").checked = cls.randomize;
   const labels = seatLabels();
   $("randomize-sub").textContent = labels.length
@@ -560,8 +561,8 @@ for (const o of document.querySelectorAll('input[name="orient"]')) o.addEventLis
 // ------------------------------------------------------------------ print options
 
 const PO = {
-  font: ["po-font", "--font"], fontSize: ["po-font-size", "--font-size"],
-  spacing: ["po-spacing", "--question-spacing"], optionFont: ["po-option-font", "--option-font"],
+  fontSize: ["po-font-size", "--font-size"],
+  spacing: ["po-spacing", "--question-spacing"],
   optionSize: ["po-option-size", "--option-font-size"], calc: ["po-calc", "--calculated-instructions"],
   fill: ["po-fill", "--fill-blank-instructions"], blank: ["po-blank", "--fill-blank-text"],
   width: ["po-width", "--answer-width"], shading: ["po-shading", "--cell-shading"],
@@ -574,8 +575,8 @@ const PO_FLAGS = { "po-points": "--show-points", "po-noinstr": "--no-quiz-instru
 const STANDARD_CALC = "Write your answer in the boxes on the answer card: one digit, minus sign or decimal point per box.";
 const STANDARD_FILL = "Write your answer in the box on the answer card.";
 
-function printArgs() {
-  const a = [];
+function printArgs(run) {
+  const a = [...fontArgs(run)];
   if (marginMode() === "all") { if ($("po-margin").value.trim()) a.push("--margin", $("po-margin").value.trim()); }
   else for (const side of SIDES) { const v = $("po-margin-" + side).value.trim(); if (v) a.push("--margin-" + side, v); }
   if (aciMode() === "none") a.push("--answer-card-instructions", "none");
@@ -584,7 +585,9 @@ function printArgs() {
     const v = $(id).value.trim();
     if (v) a.push(opt, v);
   }
-  if (document.querySelector('input[name="po-marker"]:checked').value === "nodot") a.push("--no-option-dot");
+  if (document.querySelector('input[name="po-marker"]:checked').value === "dot") a.push("--option-dot");   // off by default
+  if (!$("po-enclosed").checked) a.push("--option-letters", "plain");          // circled letters are the default
+  else if (enclosedStyle() === "filled") a.push("--option-letters", "filled");
   const cols = parseInt($("po-option-columns").value, 10);
   if (cols > 1) a.push("--option-columns", String(cols));
   for (const [id, opt] of Object.entries(PO_FLAGS)) if ($(id).checked) a.push(opt);
@@ -609,12 +612,24 @@ function printProblem() {
   const sh = $("po-shading").value.trim();
   if (sh && !(Number(sh) >= 0 && Number(sh) <= 100)) return "Print Options: cell shading is a percentage from 0 to 100.";
   if (aciMode() === "file" && !aciHtml()) return "Print Options: choose your answer card instructions file (.html), or pick Standard or None.";
+  for (const id of FONT_PICKS) {
+    const f = fontChoice[id];
+    if (f && f.kind === "missing") return `Print Options: the font “${f.label}” from the configuration is not here: choose it from the fonts on this computer, choose its file, or pick another font.`;
+  }
   const seed = $("adv-seed").value.trim();
   if (seed && !/^\d{1,10}$/.test(seed)) return "Advanced Options: the seed is a whole number.";
   return "";
 }
 
 const aciHtml = () => aciFiles.find((f) => /\.html?$/i.test(f.name));
+const enclosedStyle = () => document.querySelector('input[name="po-enclosed-style"]:checked').value;
+
+function showEnclosed() {
+  const on = $("po-enclosed").checked;
+  for (const r of document.querySelectorAll('input[name="po-enclosed-style"]')) r.disabled = !on;
+  $("po-enclosed-style").classList.toggle("off", !on);
+}
+$("po-enclosed").addEventListener("change", () => { showEnclosed(); update(); });
 
 function showMargins() {
   const each = marginMode() === "each";
@@ -633,6 +648,186 @@ $("po-aci-file").addEventListener("change", () => {
     : `${html.name}` + (aciFiles.length > 1 ? ` and ${aciFiles.length - 1} image${aciFiles.length === 2 ? "" : "s"}` : "");
   update();
 });
+
+// ------------------------------------------------------------------ fonts
+
+// Fonts for the questions (--font) and the option letters (--option-font): the three fonts every
+// PDF reader has, the fonts supplied with MasterTest Builder, the fonts installed on this computer
+// (in browsers that can list them: Chrome and Edge) or font files the user chooses. Installed fonts
+// and font files are sent to the program with the run, under fonts/.
+const FONT_PICKS = ["po-font", "po-option-font"];
+const FONT_OPT = { "po-font": "--font", "po-option-font": "--option-font" };
+const BUILT_IN = ["Helvetica", "Times", "Courier"];
+const SUPPLIED = { "Open Sans": "many alphabets", "Source Code Pro": "for code", "DejaVu Sans": "" };
+const fontDefault = (id) => ($(id).dataset.default === "same" ? "same" : "named:" + $(id).dataset.default);
+const fontDefaultChoice = (id) => ({ kind: "named", label: $(id).dataset.default, value: fontDefault(id) });
+const fontChoice = {};     // id -> {kind: "named" | "local" | "file" | "missing", label, value, files}
+let localFamilies = null;  // family -> [FontData], once the browser has listed them
+
+const fontSlug = (s) => s.replace(/[^A-Za-z0-9._-]+/g, "_");
+
+function fontMenu(id) {
+  const sel = $(id), keep = sel.value;
+  const optionFont = id === "po-option-font";
+  sel.textContent = "";
+  const group = (label, items) => {
+    const g = document.createElement("optgroup");
+    g.label = label;
+    for (const [value, text] of items) g.append(new Option(text, value));
+    sel.append(g);
+  };
+  if (optionFont) sel.append(new Option("Same as the questions" + (sel.dataset.default === "same" ? " (default)" : ""), "same"));
+  group("Built into every PDF reader", BUILT_IN.map((f) => ["named:" + f, f + (f === sel.dataset.default ? " (default)" : "")]));
+  group("Supplied with MasterTest", Object.entries(SUPPLIED).map(([f, d]) =>
+    ["named:" + f, f + (d ? ` – ${d}` : "") + (f === sel.dataset.default ? " (default)" : "")]));
+  if (localFamilies) group("On this computer", [...localFamilies.keys()].map((f) => ["local:" + f, f]));
+  else sel.append(new Option("Fonts on this computer…", "ask-local"));
+  const f = fontChoice[id];
+  if (f && f.kind === "file") group("Font file", [["file", f.label]]);
+  if (f && f.kind === "missing") group("From the configuration", [["missing", f.label + " (not available here)"]]);
+  sel.append(new Option("Choose a font file…", "ask-file"));
+  sel.value = [...sel.options].some((o) => o.value === keep) ? keep : fontDefault(id);
+}
+
+function fontState(id, text) {
+  $(id + "-state").textContent = text || (id === "po-option-font" ? "for the option letters A, B, C…" : "");
+}
+
+function fontPicked(id) {
+  const v = $(id).value, prev = fontChoice[id];
+  const back = () => { $(id).value = prev ? prev.value : fontDefault(id); };
+  if (v === "ask-file") { back(); $(id + "-file").click(); return; }
+  if (v === "ask-local") { back(); listLocalFonts(id); return; }
+  if (v === "same") fontChoice[id] = { kind: "named", label: "same", value: v };
+  else if (v.startsWith("named:")) fontChoice[id] = { kind: "named", label: v.slice(6), value: v };
+  else if (v.startsWith("local:")) fontChoice[id] = { kind: "local", label: v.slice(6), value: v };
+  fontState(id, v.startsWith("local:") ? "installed on this computer; sent with the exam to the program" : "");
+  update();
+}
+
+async function listLocalFonts(id) {
+  if (!("queryLocalFonts" in window)) {
+    fontState(id, "This browser cannot list the fonts on this computer (Chrome and Edge can). Choose a font file instead.");
+    return;
+  }
+  try {
+    const all = await window.queryLocalFonts();
+    localFamilies = new Map();
+    for (const f of all) {
+      if (!localFamilies.has(f.family)) localFamilies.set(f.family, []);
+      localFamilies.get(f.family).push(f);
+    }
+    localFamilies = new Map([...localFamilies.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+  } catch (err) {
+    fontState(id, "The browser did not allow listing the fonts on this computer. Choose a font file instead.");
+    return;
+  }
+  if (!localFamilies.size) { localFamilies = null; fontState(id, "No fonts were found on this computer. Choose a font file instead."); return; }
+  for (const other of FONT_PICKS) {
+    fontMenu(other);
+    const f = fontChoice[other];   // a font named in a configuration may now be found
+    if (f && f.kind === "missing" && localFamilies.has(f.label)) { fontChoice[other] = { kind: "local", label: f.label, value: "local:" + f.label }; fontMenu(other); $(other).value = "local:" + f.label; }
+  }
+  fontState(id, `${localFamilies.size} font families on this computer are now in the list.`);
+  $(id).focus();
+  update();
+}
+
+for (const id of FONT_PICKS) {
+  fontMenu(id);
+  fontChoice[id] = fontDefaultChoice(id);
+  $(id).addEventListener("change", () => fontPicked(id));
+  $(id + "-file").addEventListener("change", () => {
+    const files = [...$(id + "-file").files];
+    $(id + "-file").value = "";
+    if (!files.length) return;
+    // several files: the faces of one family (regular, bold, italic); the first is the font chosen
+    const regular = files.find((f) => !/bold|italic|oblique/i.test(f.name)) || files[0];
+    fontChoice[id] = { kind: "file", label: regular.name + (files.length > 1 ? ` (+${files.length - 1})` : ""), value: "file",
+      files: [regular, ...files.filter((f) => f !== regular)] };
+    fontMenu(id);
+    $(id).value = "file";
+    fontState(id, "a font file you chose; sent with the exam to the program");
+    update();
+  });
+}
+
+// the font as the program is given it. A run gets the file paths under fonts/; a saved configuration
+// gets the name (an installed family, or the file name), which the desktop program also understands.
+function fontArg(id, run) {
+  const f = fontChoice[id];
+  if (!f) return "";
+  if (f.kind === "named") return f.label;
+  if (f.kind === "missing") return f.label;
+  if (f.kind === "file") return run ? `fonts/${fontSlug(id)}/${fontSlug(f.files[0].name)}` : f.files[0].name;
+  if (f.kind === "local") return run ? f.runPath : f.label;   // runPath: set by fontFiles(), just before the run
+  return "";
+}
+
+function fontArgs(run) {
+  const a = [];
+  for (const id of FONT_PICKS) {
+    const v = fontArg(id, run);
+    if (v && v !== $(id).dataset.default) a.push(FONT_OPT[id], v);
+  }
+  return a;
+}
+
+// installed fonts: up to four faces of the family (regular, bold, italic, bold italic), each in a
+// file of its own; a font collection (.ttc) once
+async function localFaces(family) {
+  const faces = localFamilies.get(family) || [];
+  const rank = (f) => ["regular", "normal", "roman", "book"].includes(f.style.toLowerCase()) ? 0 : 1;
+  const want = faces.filter((f) => /^(regular|normal|roman|book|bold|italic|oblique|bold italic|bold oblique)$/i.test(f.style));
+  const pick = (want.length ? want : faces.slice(0, 1)).sort((a, b) => rank(a) - rank(b)).slice(0, 4);
+  const out = [], seen = new Set();
+  for (const f of pick) {
+    const data = await (await f.blob()).arrayBuffer();
+    const head = new Uint8Array(data, 0, 4);
+    const tag = String.fromCharCode(...head);
+    const key = data.byteLength + ":" + tag;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ext: tag === "ttcf" ? ".ttc" : tag === "OTTO" ? ".otf" : ".ttf", data });
+  }
+  return out;
+}
+
+async function fontFiles() {
+  const files = [];
+  for (const id of FONT_PICKS) {
+    const f = fontChoice[id];
+    if (!f) continue;
+    if (f.kind === "file") {
+      for (const file of f.files) files.push({ name: `fonts/${fontSlug(id)}/${fontSlug(file.name)}`, data: await file.arrayBuffer() });
+    } else if (f.kind === "local") {
+      // the first face is written under the name the program is given; the rest beside it with the
+      // same start, so the program finds the bold and italic faces
+      const faces = await localFaces(f.label);
+      faces.forEach((face, i) => files.push({ name: `fonts/${fontSlug(id)}/${fontSlug(f.label)}${i ? "-" + i : ""}${face.ext}`, data: face.data }));
+      if (!faces.length) throw new Error(`The font “${f.label}” could not be read from this computer.`);
+      f.runPath = files.find((x) => x.name.startsWith(`fonts/${fontSlug(id)}/`)).name;
+    }
+  }
+  return files;
+}
+
+// a font named in a loaded configuration
+function setFont(id, v) {
+  if (v === undefined || v === "") { fontChoice[id] = fontDefaultChoice(id); fontMenu(id); $(id).value = fontChoice[id].value; fontState(id); return false; }
+  const name = v.split(/[\\/]/).pop();
+  const lower = v.toLowerCase();
+  const named = id === "po-option-font" && lower === "same" ? "same"
+    : [...BUILT_IN, ...Object.keys(SUPPLIED)].find((f) => f.toLowerCase() === lower || (lower === "times-roman" && f === "Times"));
+  if (named) fontChoice[id] = { kind: "named", label: named, value: named === "same" ? "same" : "named:" + named };
+  else if (localFamilies && localFamilies.has(v)) fontChoice[id] = { kind: "local", label: v, value: "local:" + v };
+  else if (fontChoice[id] && fontChoice[id].kind === "file" && fontChoice[id].files[0].name === name) { /* the same file is already chosen */ }
+  else fontChoice[id] = { kind: "missing", label: name, value: "missing" };
+  fontMenu(id);
+  $(id).value = fontChoice[id].value;
+  fontState(id, fontChoice[id].kind === "missing" ? `The configuration used “${name}”: choose it from the fonts on this computer or as a file.` : "");
+  return v.toLowerCase() !== $(id).dataset.default.toLowerCase();
+}
 
 // ------------------------------------------------------------------ page options and advanced options
 
@@ -718,15 +913,16 @@ function setPrintOptions(got) {
     if (!(opt in got)) { $(id).value = ""; continue; }
     let v = got[opt] === "" ? "none" : got[opt];
     if (id === "po-shading") v = v.toLowerCase() === "none" ? "0" : v.replace(/%$/, "");
-    if (id === "po-font" || id === "po-option-font") {
-      const m = [...$(id).options].find((o) => o.value.toLowerCase() === v.toLowerCase() || o.text.toLowerCase() === v.toLowerCase());
-      if (m) v = m.value; else { $(id).append(new Option(v, v)); }   // a font file or name from the desktop
-      if (id === "po-font" && v.toLowerCase() === "helvetica") v = "";
-    }
     $(id).value = v;
     any = true;
   }
-  for (const r of document.querySelectorAll('input[name="po-marker"]')) r.checked = r.value === (got["--no-option-dot"] ? "nodot" : "dot");
+  for (const r of document.querySelectorAll('input[name="po-marker"]')) r.checked = r.value === (got["--option-dot"] ? "dot" : "nodot");
+  for (const id of FONT_PICKS) if (setFont(id, got[FONT_OPT[id]])) any = true;
+  const letters = (got["--option-letters"] || "circled").toLowerCase();
+  $("po-enclosed").checked = letters !== "plain";
+  for (const r of document.querySelectorAll('input[name="po-enclosed-style"]')) r.checked = r.value === (letters === "filled" ? "filled" : "circled");
+  showEnclosed();
+  any = any || letters !== "circled";
   // margins: all sides, or each side when a side is given
   const sides = SIDES.filter((side) => got["--margin-" + side]);
   for (const r of document.querySelectorAll('input[name="po-margin-mode"]')) r.checked = r.value === (sides.length ? "each" : "all");
@@ -747,7 +943,7 @@ function setPrintOptions(got) {
   $("po-option-columns").value = got["--option-columns"] || "1";
   for (const [id, opt] of Object.entries(PO_FLAGS)) $(id).checked = !!got[opt];
   $("po-pad").checked = !got["--no-option-pad"];
-  any = any || got["--no-option-pad"] || got["--no-option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
+  any = any || got["--no-option-pad"] || got["--option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
   if (any) $("print-details").open = true;
   return any;
 }
@@ -800,12 +996,12 @@ function update() {
 }
 
 // the options for a run, without the files: the configuration that can be saved and loaded
-function options() {
+function options(run = false) {
   const a = [...layoutArgs(layout)];
   if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
   if (classFile && mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
   a.push(...classArgs());
-  a.push(...printArgs());
+  a.push(...printArgs(run));
   a.push(...pageArgs());
   a.push(...advArgs());
   if (blanks() > 0) a.push("--blank-cards", String(blanks()));
@@ -814,7 +1010,7 @@ function options() {
 }
 
 function argv(password) {
-  return [exportFile.name, ...(classFile ? ["--class-list", classFile.name] : []), ...options(), ...(password ? ["--password"] : [])];
+  return [exportFile.name, ...(classFile ? ["--class-list", classFile.name] : []), ...options(true), ...(password ? ["--password"] : [])];
 }
 
 // ------------------------------------------------------------------ the question pool
@@ -1009,15 +1205,15 @@ function loadConfig(name, textIn) {
   const got = {}, rest = [], ignored = [];
   const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
     "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation",
-    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-font-size", "--option-columns",
+    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--option-font-size", "--option-columns",
     "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text",
     "--margin-left", "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading",
     "--answer-card-instructions", "--page-options", "--qr-quality", "--seed"]);
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
-    if (["--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
-    if (o === "--option-dot") continue;   // the default
+    if (["--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--option-dot"].includes(o)) { got[o] = true; continue; }
+    if (o === "--no-option-dot") continue;   // the default
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
     rest.push(o);
@@ -1265,6 +1461,13 @@ async function generate(password) {
   const files = [{ name: exportFile.name, data: await exportFile.arrayBuffer() }];
   if (classFile) files.push({ name: classFile.name, data: await classFile.arrayBuffer() });
   if (aciMode() === "file") for (const f of aciFiles) files.push({ name: f.name, data: await f.arrayBuffer() });
+  try {
+    files.push(...await fontFiles());
+  } catch (err) {
+    $("log").textContent = "ERROR: " + (err && err.message ? err.message : err) + "\n";
+    finish(false);
+    return;
+  }
   worker.postMessage({ type: "run", files, argv: argv(password), password }, files.map((f) => f.data));
 }
 
