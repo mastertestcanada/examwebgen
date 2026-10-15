@@ -89,14 +89,21 @@ async function run({ files, argv, password, cjk }) {
 }
 
 // Reads an export as soon as it is chosen: which quizzes it holds, then what one of them holds.
-function inspect({ name, data }) {
+function setLang(lang) {
+  py.globals.set("web_lang", lang || "en");
+  py.runPython("from mtbuilder import web_runner; web_runner.set_language(web_lang)");
+}
+
+function inspect({ name, data, lang }) {
+  setLang(lang);
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
   py.FS.writeFile("/work/in/" + name, new Uint8Array(data));
   py.globals.set("web_name", name);
   post("quizzes", { name, result: JSON.parse(py.runPython("web_runner.quizzes(web_name)")) });
 }
 
-function summary({ name, number, data }) {
+function summary({ name, number, data, lang, refresh }) {
+  setLang(lang);
   // the export may have been cleared by a run since it was inspected
   if (data && !py.FS.analyzePath("/work/in/" + name).exists) {
     py.runPython("from mtbuilder import web_runner; web_runner.reset()");
@@ -104,12 +111,13 @@ function summary({ name, number, data }) {
   }
   py.globals.set("web_name", name);
   py.globals.set("web_number", number);
-  post("summary", { name, number, result: JSON.parse(py.runPython("web_runner.summary(web_name, web_number)")) });
+  post("summary", { name, number, refresh: !!refresh, result: JSON.parse(py.runPython("web_runner.summary(web_name, web_number)")) });
 }
 
 // Reads a class list as soon as it is chosen, with the page's class-list options. The file is
 // written to a folder of its own and deleted straight after (the run gets its own copy).
-function classlist({ name, data, id, qr }) {
+function classlist({ name, data, id, qr, lang }) {
+  setLang(lang);
   const dir = "/work/classcheck";
   py.FS.mkdirTree(dir);
   const path = dir + "/" + name;

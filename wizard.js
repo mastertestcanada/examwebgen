@@ -187,14 +187,14 @@ async function inspectExport() {
   const f = exportFile;
   const data = await f.arrayBuffer();
   if (f !== exportFile) return;            // another file was chosen meanwhile
-  worker.postMessage({ type: "inspect", name: f.name, data }, [data]);
+  worker.postMessage({ type: "inspect", name: f.name, data, lang: uiLang }, [data]);
 }
 
 async function requestSummary(number) {
   Object.assign(quiz, { state: "loading", number, summary: null });
   showQuiz();
   const data = await exportFile.arrayBuffer();
-  worker.postMessage({ type: "summary", name: exportFile.name, number, data }, [data]);
+  worker.postMessage({ type: "summary", name: exportFile.name, number, data, lang: uiLang }, [data]);
 }
 
 function onQuizzes(data) {
@@ -218,9 +218,19 @@ function onQuizzes(data) {
   showQuiz();
 }
 
+// the summary's messages again, in the page's new language, keeping every choice made
+async function refreshSummary() {
+  const data = await exportFile.arrayBuffer();
+  worker.postMessage({ type: "summary", name: exportFile.name, number: quiz.number, data, lang: uiLang, refresh: true }, [data]);
+}
+
 function onSummary(data) {
   if (!exportFile || data.name !== exportFile.name || data.number !== quiz.number) return;
   const r = data.result;
+  if (data.refresh) {
+    if (quiz.state === "ready" && !r.error) { quiz.summary.warnings = r.warnings; quiz.summary.omitted_notes = r.omitted_notes; showQuiz(); }
+    return;
+  }
   if (r.error) Object.assign(quiz, { state: "error", message: r.error });
   else Object.assign(quiz, { state: "ready", summary: r });
   setMergedAvailable(r.error ? null : r);
@@ -265,7 +275,7 @@ function showQuiz() {
     if (s.pick_rules.length)
       notes.push(tr("Each exam gets {per} of them: the quiz's item banks pick some of their questions (“pick N”). Alter the question pool to change this.", { per: s.per_exam_with_banks }));
     if (s.omitted) notes.push(trn(s.omitted, "{n} question was left out because it cannot be printed: {list}", "{n} questions were left out because they cannot be printed: {list}",
-      { list: s.warnings.filter((w) => w.includes("omitted")).map((w) => w.replace(/^Question /, "")).join("; ") }));
+      { list: (s.omitted_notes || []).join("; ") }));
     if (!s.merged1_ok) notes.push(tr("At least one question has {n} options, so the Merged One Column and Merged Two Column Layouts are not available. If you want to use them make sure multiple-choice questions have no more than 6 options (4 for Merged Two Column).", { n: s.max_options }));
     else if (!s.merged_ok) notes.push(tr("At least one question has {n} options, so the Merged Two Column Layout is not available. If you want to use this layout make sure multiple-choice questions have no more than 4 options.", { n: s.max_options }));
     $("sum-note").textContent = notes.join(" ");
@@ -378,7 +388,7 @@ async function inspectClass() {
   const data = await f.arrayBuffer();
   if (f !== classFile) return;
   classAsked++;
-  worker.postMessage({ type: "classlist", name: f.name, data, id: cls.id, qr: csvJoin(cls.qr), ask: classAsked }, [data]);
+  worker.postMessage({ type: "classlist", name: f.name, data, id: cls.id, qr: csvJoin(cls.qr), ask: classAsked, lang: uiLang }, [data]);
 }
 
 function onClasslist(data) {
@@ -427,7 +437,7 @@ function showClass() {
     if (r.seat_column && !cls.randomize) notes.push(r.seats_in_list === 0 ? tr("The “{c}” column is empty: tick Randomize seats to give everyone a seat.", { c: r.seat_column })
       : r.seats_in_list < r.students ? trn(r.students - r.seats_in_list, "Seats come from the “{c}” column ({n} student has none).", "Seats come from the “{c}” column ({n} students have none).", { c: r.seat_column })
       : tr("Seats come from the “{c}” column.", { c: r.seat_column }));
-    const other = r.warnings.filter((w) => !w.includes("was skipped"));
+    const other = r.notes || [];
     if (other.length) notes.push(other.join(" "));
     $("cls-note").textContent = notes.join(" ");
     $("cls-note").hidden = !notes.length;
@@ -1094,7 +1104,8 @@ function options(run = false) {
 }
 
 function argv(password) {
-  return [exportFile.name, ...(classFile ? ["--class-list", classFile.name] : []), ...options(true), ...(password ? ["--password"] : [])];
+  return [exportFile.name, ...(classFile ? ["--class-list", classFile.name] : []), ...options(true), ...(password ? ["--password"] : []),
+    "--messages-language", uiLang];
 }
 
 // ------------------------------------------------------------------ the question pool
@@ -1591,8 +1602,8 @@ function finish(ok, data) {
     $("big").innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4"/></svg>';
     $("result-title").textContent = tr("The exam could not be made");
     $("result-text").textContent = tr("The message below says what to change. Go back, adjust your choices and generate again.");
-    const errors = $("log").textContent.split("\n").filter((l) => l.startsWith("ERROR"));
-    $("log").textContent = errors.length ? errors.join("\n").replace(/^ERROR: /gm, "") : $("log").textContent;
+    const errors = $("log").textContent.split("\n").filter((l) => /^(ERROR:|ERREUR :)/.test(l));
+    $("log").textContent = errors.length ? errors.join("\n").replace(/^(ERROR: |ERREUR : )/gm, "") : $("log").textContent;
     $("log").hidden = false;
     $("back").textContent = tr("Back to step 1");
     $("result-title").focus();
@@ -1675,6 +1686,9 @@ function setUiLang(lang, first = false) {
   showQuiz();
   if (quiz.state === "ready" && quiz.summary) { setMergedAvailable(quiz.summary); showPoolTexts(); showLimitDefault(); }
   if (cls.state !== "none") showClass();
+  // what MasterTest Builder said about the files, again in the new language
+  if (ready && exportFile && quiz.number && quiz.state === "ready") refreshSummary();
+  if (ready && classFile && cls.state !== "none") { cls.state = "reading"; showClass(); inspectClass(); }
   if (ready) {
     $("engine-state").textContent = tr("Ready");
     if (engineSeconds !== null) $("engine-detail").textContent = tr("· loaded in {s} s", { s: engineSeconds.toFixed(0) });
