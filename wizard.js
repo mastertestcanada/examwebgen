@@ -85,6 +85,7 @@ function setPaper(value) {
     b.querySelector(".desc").textContent = text(l.desc);
   }
   setMergedAvailable(quiz.state === "ready" ? quiz.summary : null);
+  showPrintDefaults();
 }
 for (const r of document.querySelectorAll('input[name="paper"]')) r.addEventListener("change", () => { if (r.checked) setPaper(r.value); });
 
@@ -558,17 +559,26 @@ for (const o of document.querySelectorAll('input[name="orient"]')) o.addEventLis
 // ------------------------------------------------------------------ print options
 
 const PO = {
-  margin: ["po-margin", "--margin"], font: ["po-font", "--font"], fontSize: ["po-font-size", "--font-size"],
+  font: ["po-font", "--font"], fontSize: ["po-font-size", "--font-size"],
   spacing: ["po-spacing", "--question-spacing"], optionFont: ["po-option-font", "--option-font"],
   optionSize: ["po-option-size", "--option-font-size"], calc: ["po-calc", "--calculated-instructions"],
   fill: ["po-fill", "--fill-blank-instructions"], blank: ["po-blank", "--fill-blank-text"],
+  width: ["po-width", "--answer-width"], shading: ["po-shading", "--cell-shading"],
 };
+const SIDES = ["left", "right", "top", "bottom"];
+const marginMode = () => document.querySelector('input[name="po-margin-mode"]:checked').value;
+const aciMode = () => document.querySelector('input[name="po-aci"]:checked').value;
+let aciFiles = [];      // the answer-card instructions file and its images
 const PO_FLAGS = { "po-pad": "--pad-options", "po-points": "--show-points", "po-noinstr": "--no-quiz-instructions" };
 const STANDARD_CALC = "Write your answer in the boxes on the answer card: one digit, minus sign or decimal point per box.";
 const STANDARD_FILL = "Write your answer in the box on the answer card.";
 
 function printArgs() {
   const a = [];
+  if (marginMode() === "all") { if ($("po-margin").value.trim()) a.push("--margin", $("po-margin").value.trim()); }
+  else for (const side of SIDES) { const v = $("po-margin-" + side).value.trim(); if (v) a.push("--margin-" + side, v); }
+  if (aciMode() === "none") a.push("--answer-card-instructions", "none");
+  else if (aciMode() === "file" && aciHtml()) a.push("--answer-card-instructions", aciHtml().name);
   for (const [id, opt] of Object.values(PO)) {
     const v = $(id).value.trim();
     if (v) a.push(opt, v);
@@ -587,21 +597,109 @@ function printProblem() {
   if (os && !(Number(os) >= 4 && Number(os) <= 72)) return "Print Options: the option font size must be from 4 to 72 points.";
   const cols = $("po-option-columns").value.trim();
   if (cols && !(Number.isInteger(Number(cols)) && Number(cols) >= 1 && Number(cols) <= 6)) return "Print Options: option columns must be from 1 to 6.";
-  for (const [id, what] of [["po-margin", "margins"], ["po-spacing", "question spacing"]]) {
+  const lengths = [["po-spacing", "question spacing"], ["po-width", "answer field width"],
+    ...(marginMode() === "all" ? [["po-margin", "margins"]] : SIDES.map((side) => ["po-margin-" + side, side + " margin"]))];
+  for (const [id, what] of lengths) {
     const v = $(id).value.trim();
     if (v && !/^\d+(\.\d+)?\s*(in|cm|mm|pt)?$/i.test(v)) return `Print Options: write the ${what} as a number and a unit, such as 0.75in, 2cm, 20mm or 54pt.`;
-    if (id === "po-margin" && /^\d+(\.\d+)?$/.test(v) && Number(v) < 5) return `Print Options: a margin of ${v} without a unit is ${v} points. Did you mean ${v}in or ${v}cm?`;
+    if (id.startsWith("po-margin") && /^\d+(\.\d+)?$/.test(v) && Number(v) < 5) return `Print Options: a margin of ${v} without a unit is ${v} points. Did you mean ${v}in or ${v}cm?`;
   }
+  const sh = $("po-shading").value.trim();
+  if (sh && !(Number(sh) >= 0 && Number(sh) <= 100)) return "Print Options: cell shading is a percentage from 0 to 100.";
+  if (aciMode() === "file" && !aciHtml()) return "Print Options: choose your answer card instructions file (.html), or pick Standard or None.";
+  const seed = $("adv-seed").value.trim();
+  if (seed && !/^\d{1,10}$/.test(seed)) return "Advanced Options: the seed is a whole number.";
   return "";
 }
 
-// the defaults shown in the boxes depend on the layout
+const aciHtml = () => aciFiles.find((f) => /\.html?$/i.test(f.name));
+
+function showMargins() {
+  const each = marginMode() === "each";
+  $("po-margin-all").hidden = each;
+  $("po-margin-each").hidden = !each;
+  // a value typed for all sides is the starting point for each side
+  if (each && $("po-margin").value.trim()) for (const side of SIDES) if (!$("po-margin-" + side).value) $("po-margin-" + side).value = $("po-margin").value.trim();
+}
+for (const r of document.querySelectorAll('input[name="po-margin-mode"]')) r.addEventListener("change", () => { showMargins(); update(); });
+for (const r of document.querySelectorAll('input[name="po-aci"]')) r.addEventListener("change", () => { $("po-aci-file-row").hidden = aciMode() !== "file"; update(); });
+$("po-aci-file").addEventListener("change", () => {
+  aciFiles = [...$("po-aci-file").files];
+  const html = aciHtml();
+  $("po-aci-state").textContent = !aciFiles.length ? "An .html file (the same tags as question text); choose its images along with it."
+    : !html ? "No .html file among the files chosen."
+    : `${html.name}` + (aciFiles.length > 1 ? ` and ${aciFiles.length - 1} image${aciFiles.length === 2 ? "" : "s"}` : "");
+  update();
+});
+
+// ------------------------------------------------------------------ page options and advanced options
+
+const PAGE_DESC = {
+  "collate-exams": { booklet: "All exam booklets in one file, exams.pdf, instead of one file per student.",
+    single: "All quizzes in one file, quizzes.pdf (the same as Collate answer cards for this layout).",
+    duplex: "All folded booklets in one file, exams.pdf." },
+  "collate-answer-cards": { booklet: "All answer cards in one file, answer_cards.pdf, instead of one file per student.",
+    single: "All quizzes in one file, quizzes.pdf (the same as Collate exams for this layout).",
+    duplex: "All folded answer cards in one file, answer_cards.pdf." },
+  "title-page": { booklet: "Each booklet starts with a title page: the quiz title and the student's name, number and seat.",
+    single: null, duplex: "Always on for folded booklets: page 1 is the title page." },
+  "collate-title-pages": { booklet: "Title pages are printed separately, all in one file, title_pages.pdf, and the booklets start at question 1. Useful with variants: every student still gets a personal title page.",
+    single: null, duplex: null },
+  "pad-title-page": { booklet: "A blank page after the title page, so the questions start on a new sheet when printed double-sided. Needs Title page or Collate title pages.",
+    single: null, duplex: "Leaves page 2 of the booklet blank, so the questions start on a right-hand page." },
+  "pad-exam": { booklet: "Blank pages after each booklet, so the next student's booklet starts on a new sheet when printed double-sided.",
+    single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided (the same as Pad answer cards here).",
+    duplex: false },
+  "pad-answer-cards": { booklet: "A blank page after every answer card, so each card is on its own sheet when printed double-sided.",
+    single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided (the same as Pad exam here).",
+    duplex: false },
+};
+const layoutKind = () => (layout.id === "tabloid" ? "duplex" : layout.id === "booklet" ? "booklet" : "single");
+
+function showPageOptions() {
+  const kind = layoutKind();
+  const titles = [...document.querySelectorAll("#page-opts input")].filter((b) => ["title-page", "collate-title-pages"].includes(b.dataset.po) && b.checked && !b.disabled).length;
+  for (const box of document.querySelectorAll("#page-opts input")) {
+    const d = PAGE_DESC[box.dataset.po][kind];
+    let off = d === null || d === false;
+    let text = d === null ? "Not for this layout: the questions and answers start on the first page." + (kind === "duplex" ? "" : "")
+      : d === false ? "Not needed: folded booklets and cards are always padded." : d;
+    if (kind === "duplex" && box.dataset.po === "collate-title-pages") text = "Not for folded booklets: the title page is always the booklet's first page.";
+    if (box.dataset.po === "title-page" && kind === "duplex") { box.checked = true; off = true; }
+    else if (box.dataset.po === "title-page" && box.disabled && !off) box.checked = false;
+    if (box.dataset.po === "pad-title-page" && kind === "booklet" && !titles) { off = true; }
+    box.disabled = off;
+    box.closest("label").classList.toggle("off", off);
+    box.closest("label").querySelector("[data-desc]").textContent = text;
+  }
+  $("pg-layout-note").textContent = `For the ${layoutName(layout)} layout.` +
+    (kind === "single" ? " The quiz and its answers are on the same pages, so the exam and answer-card options mean the same." : "");
+}
+function pageArgs() {
+  const on = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).map((b) => b.dataset.po);
+  return on.length ? ["--page-options", on.join(",")] : [];
+}
+for (const box of document.querySelectorAll("#page-opts input")) box.addEventListener("change", () => { showPageOptions(); update(); });
+
+function advArgs() {
+  const a = [];
+  if ($("adv-qr").value) a.push("--qr-quality", $("adv-qr").value);
+  if ($("adv-seed").value.trim()) a.push("--seed", $("adv-seed").value.trim());
+  return a;
+}
+for (const el of ["adv-qr", "adv-seed"]) { $(el).addEventListener("input", update); $(el).addEventListener("change", update); }
 function showPrintDefaults() {
   const merged = layout.id.startsWith("merged");
   $("po-font-size").placeholder = merged ? "9" : "11";
   $("po-font-size-hint").textContent = `points (default ${merged ? "9 on merged sheets" : "11"})`;
   $("po-calc").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : STANDARD_CALC;
   $("po-fill").placeholder = merged ? "(none on merged sheets: the header says how to answer)" : STANDARD_FILL;
+  const iso = paper === "iso";
+  const w = layout.id === "merged1" ? "180pt" : layout.id === "merged2" ? "90pt" : iso ? "91pt" : "95pt";
+  $("po-width").placeholder = w;
+  $("po-width-hint").textContent = `width of the written-answer boxes; bubbles and number cells scale with it (default ${w} for this layout; ` +
+    (layout.id === "merged1" ? "60–255pt)" : layout.id === "merged2" ? `60–${iso ? 139 : 148}pt)` : "50pt up)");
+  showPageOptions();
   $("po-pad").closest("label").querySelector(".sub").textContent = merged
     ? "Merged sheets print four bubbles (A–D) for every multiple-choice question, six (A–F) for questions with five or six options."
     : "Answer cards print six bubbles (A–F) for every multiple-choice question, not one per printed option.";
@@ -616,7 +714,8 @@ function setPrintOptions(got) {
   let any = false;
   for (const [id, opt] of Object.values(PO)) {
     if (!(opt in got)) { $(id).value = ""; continue; }
-    let v = got[opt] === "" && opt !== "--margin" ? "none" : got[opt];
+    let v = got[opt] === "" ? "none" : got[opt];
+    if (id === "po-shading") v = v.toLowerCase() === "none" ? "0" : v.replace(/%$/, "");
     if (id === "po-font" || id === "po-option-font") {
       const m = [...$(id).options].find((o) => o.value.toLowerCase() === v.toLowerCase() || o.text.toLowerCase() === v.toLowerCase());
       if (m) v = m.value; else { $(id).append(new Option(v, v)); }   // a font file or name from the desktop
@@ -626,6 +725,23 @@ function setPrintOptions(got) {
     any = true;
   }
   for (const r of document.querySelectorAll('input[name="po-marker"]')) r.checked = r.value === (got["--no-option-dot"] ? "nodot" : "dot");
+  // margins: all sides, or each side when a side is given
+  const sides = SIDES.filter((side) => got["--margin-" + side]);
+  for (const r of document.querySelectorAll('input[name="po-margin-mode"]')) r.checked = r.value === (sides.length ? "each" : "all");
+  $("po-margin").value = got["--margin"] || "";
+  for (const side of SIDES) $("po-margin-" + side).value = got["--margin-" + side] || (sides.length && got["--margin"]) || "";
+  showMargins();
+  any = any || !!got["--margin"] || sides.length > 0;
+  // answer card instructions
+  const aci = got["--answer-card-instructions"];
+  const aciWant = aci === undefined ? "standard" : (aci === "" || aci.toLowerCase() === "none") ? "none" : "file";
+  for (const r of document.querySelectorAll('input[name="po-aci"]')) r.checked = r.value === aciWant;
+  $("po-aci-file-row").hidden = aciWant !== "file";
+  if (aciWant === "file" && !(aciHtml() && aciHtml().name === aci.split(/[\\/]/).pop())) {
+    aciFiles = []; $("po-aci-file").value = "";
+    $("po-aci-state").textContent = `The configuration used ${aci}: choose it (and its images) again.`;
+  }
+  any = any || aciWant !== "standard";
   $("po-option-columns").value = got["--option-columns"] || "1";
   for (const [id, opt] of Object.entries(PO_FLAGS)) $(id).checked = !!got[opt];
   any = any || got["--no-option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
@@ -687,6 +803,8 @@ function options() {
   if (classFile && mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
   a.push(...classArgs());
   a.push(...printArgs());
+  a.push(...pageArgs());
+  a.push(...advArgs());
   if (blanks() > 0) a.push("--blank-cards", String(blanks()));
   if (!extras.includes("--use-item-banks")) a.push(...poolArgs());
   return [...a, ...extras];
@@ -858,7 +976,9 @@ function loadConfig(name, textIn) {
   const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
     "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation",
     "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-font-size", "--option-columns",
-    "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text"]);
+    "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text",
+    "--margin-left", "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading",
+    "--answer-card-instructions", "--page-options", "--qr-quality", "--seed"]);
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
@@ -908,6 +1028,17 @@ function loadConfig(name, textIn) {
   if (cls.id || cls.qr.length) parts.push("class list options");
   if (cls.att.length || cls.sort || cls.orient !== "portrait") parts.push("attendance sheet options");
   if (setPrintOptions(got)) parts.push("print options");
+  // page options (old spellings too) and advanced options
+  const canon = (v) => v.toLowerCase().replace(/[^a-z]/g, "");
+  const wanted = csvSplit(got["--page-options"] || "").map(canon);
+  for (const box of document.querySelectorAll("#page-opts input")) box.checked = wanted.includes(canon(box.dataset.po));
+  const unknownPages = wanted.filter((w) => ![...document.querySelectorAll("#page-opts input")].some((b) => canon(b.dataset.po) === w));
+  if (unknownPages.length) extras.push("--page-options", unknownPages.join(","));   // the program explains them
+  showPageOptions();
+  if (wanted.length) { $("page-details").open = true; parts.push("page options"); }
+  $("adv-qr").value = ["L", "Q", "H"].includes((got["--qr-quality"] || "").toUpperCase()) ? got["--qr-quality"].toUpperCase() : "";
+  $("adv-seed").value = got["--seed"] || "";
+  if (got["--qr-quality"] || got["--seed"]) { $("adv-details").open = true; parts.push(got["--seed"] ? `seed ${got["--seed"]}` : "QR code quality"); }
   if (sortBy.length > 1) parts.push(`sorted by ${sortBy[0]} only (the page sorts by one column)`);
   let msg = `Loaded ${name}: ${parts.join(", ")}.`;
   if (extras.length) msg += ` Also used when generating: ${extras.join(" ")}.`;
@@ -990,6 +1121,9 @@ $("config-forget").addEventListener("click", () => {
   Object.assign(cls, { id: "", qr: [], randomize: false, att: [], sort: "", desc: false, orient: "portrait" });
   setPrintOptions({});
   $("print-details").open = false;
+  for (const box of document.querySelectorAll("#page-opts input")) box.checked = false;
+  showPageOptions();
+  $("adv-qr").value = ""; $("adv-seed").value = "";
   $("seat-labels").value = "";
   if (classFile) { cls.state = "reading"; showClass(); if (ready) inspectClass(); }
   $("config-state").hidden = true;
@@ -1090,6 +1224,7 @@ async function generate(password) {
     quiz: quiz.list.length > 1 ? { number: quiz.number, of: quiz.list.length, file: exportFile.name } : null, classList: !!classFile };
   const files = [{ name: exportFile.name, data: await exportFile.arrayBuffer() }];
   if (classFile) files.push({ name: classFile.name, data: await classFile.arrayBuffer() });
+  if (aciMode() === "file") for (const f of aciFiles) files.push({ name: f.name, data: await f.arrayBuffer() });
   worker.postMessage({ type: "run", files, argv: argv(password), password }, files.map((f) => f.data));
 }
 

@@ -323,6 +323,7 @@ button.secondary:disabled { border-color: var(--rule); color: var(--muted); curs
 /* print options */
 section.block:has(> .print-opts) { padding: 1rem 0; }
 .form-grid { display: grid; grid-template-columns: max-content 1fr; gap: .6rem 1rem; align-items: center; margin-top: .9rem; }
+.form-grid > .grid-label:has(+ .margin-cell) { align-self: start; padding-top: .1rem; }
 .form-grid > label, .form-grid > .grid-label { font-weight: 700; font-size: .95rem; }
 .form-grid.texts { grid-template-columns: minmax(12rem, max-content) 1fr; margin-top: 1.1rem; }
 .text.short { width: 7rem; min-width: 0; }
@@ -330,6 +331,16 @@ section.block:has(> .print-opts) { padding: 1rem 0; }
 .text::placeholder { color: var(--muted); opacity: .8; }
 .inline-radios { display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; }
 .po-checks { margin-top: 1.1rem; gap: .6rem; }
+
+.margin-cell { display: flex; flex-direction: column; gap: .5rem; }
+.margin-row { display: block; }
+.sides { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
+.sides label { display: inline-flex; align-items: center; gap: .4rem; font-size: .92rem; }
+.sub-h { font-size: 1rem; margin: 1.4rem 0 0; padding-top: 1rem; border-top: 1px dashed var(--rule); }
+.aci-file { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; margin-top: .5rem; font-size: .9rem; }
+.tag.duplex { display: inline-block; font-size: .75rem; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); padding: 0 .35rem; margin-left: .3rem; vertical-align: 1px; }
+.check.off { opacity: .45; }
+section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top: 0; padding-top: 0; }
 
 @media (max-width: 640px) {
   :root { font-size: 16px; }
@@ -576,8 +587,20 @@ section.block:has(> .print-opts) { padding: 1rem 0; }
         <summary>Print Options <span class="summary-note">Change margins, fonts, spacing and instructional text.</span></summary>
         <div class="pool-body">
           <div class="form-grid">
-            <label for="po-margin">Margins:</label>
-            <span><input type="text" id="po-margin" class="text short" placeholder="0.75in" spellcheck="false"> <span class="pool-of">all four sides, e.g. 0.75in, 2cm, 20mm, 54pt (default 0.75in)</span></span>
+            <span class="grid-label" id="po-margin-mode-label">Margins:</span>
+            <span class="margin-cell">
+              <span role="radiogroup" aria-labelledby="po-margin-mode-label" class="inline-radios">
+                <label class="bubble inline"><input type="radio" name="po-margin-mode" value="all" checked><span class="label">Same on all sides</span></label>
+                <label class="bubble inline"><input type="radio" name="po-margin-mode" value="each"><span class="label">Each side separately</span></label>
+              </span>
+              <span id="po-margin-all" class="margin-row"><input type="text" id="po-margin" class="text short" placeholder="0.75in" spellcheck="false" aria-label="Margin on all sides"> <span class="pool-of">e.g. 0.75in, 2cm, 20mm, 54pt (default 0.75in)</span></span>
+              <span class="sides margin-row" id="po-margin-each" hidden>
+                <label>Left <input type="text" id="po-margin-left" class="text short" placeholder="0.75in" spellcheck="false"></label>
+                <label>Right <input type="text" id="po-margin-right" class="text short" placeholder="0.75in" spellcheck="false"></label>
+                <label>Top <input type="text" id="po-margin-top" class="text short" placeholder="0.75in" spellcheck="false"></label>
+                <label>Bottom <input type="text" id="po-margin-bottom" class="text short" placeholder="0.75in" spellcheck="false"></label>
+              </span>
+            </span>
             <label for="po-font">Font:</label>
             <span><select id="po-font" class="select"><option value="">Helvetica (default)</option><option>Times</option><option>Courier</option></select></span>
             <label for="po-font-size">Font size:</label>
@@ -596,6 +619,26 @@ section.block:has(> .print-opts) { padding: 1rem 0; }
             <label for="po-option-columns">Option columns:</label>
             <span><input type="number" id="po-option-columns" class="text short" min="1" max="6" step="1" value="1" inputmode="numeric"> <span class="pool-of">lay each question's options out in this many columns (default 1)</span></span>
           </div>
+          <h3 class="sub-h">Answer cards</h3>
+          <div class="form-grid">
+            <label for="po-width">Answer field width:</label>
+            <span><input type="text" id="po-width" class="text short" spellcheck="false"> <span class="pool-of" id="po-width-hint"></span></span>
+            <label for="po-shading">Cell shading:</label>
+            <span><input type="number" id="po-shading" class="text short" min="0" max="100" step="1" placeholder="15" inputmode="numeric"> <span class="pool-of">% grey in the number, written-answer, student-number and seat boxes (default 15); 0 prints outlined boxes</span></span>
+            <span class="grid-label" id="po-aci-label">Answer card instructions:</span>
+            <span>
+              <span role="radiogroup" aria-labelledby="po-aci-label" class="inline-radios">
+                <label class="bubble inline"><input type="radio" name="po-aci" value="standard" checked><span class="label">Standard</span></label>
+                <label class="bubble inline"><input type="radio" name="po-aci" value="none"><span class="label">None</span></label>
+                <label class="bubble inline"><input type="radio" name="po-aci" value="file"><span class="label">My own</span></label>
+              </span>
+              <span class="aci-file" id="po-aci-file-row" hidden>
+                <input type="file" id="po-aci-file" accept=".html,.htm,text/html,image/*" multiple aria-label="Answer card instructions file and its images">
+                <span class="pool-of" id="po-aci-state">An .html file (the same tags as question text); choose its images along with it.</span>
+              </span>
+            </span>
+          </div>
+          <h3 class="sub-h">Questions</h3>
           <div class="choices tight po-checks">
             <label class="check"><input type="checkbox" id="po-pad"><span><span class="label">Pad Options</span><span class="sub">Answer cards print every bubble (A–F; A–D on merged sheets) for every multiple-choice question, not one per printed option.</span></span></label>
             <label class="check"><input type="checkbox" id="po-points"><span><span class="label">Show Points</span><span class="sub">Print each question's point value.</span></span></label>
@@ -610,6 +653,45 @@ section.block:has(> .print-opts) { padding: 1rem 0; }
             <input type="text" id="po-blank" class="text wide" placeholder="__________ (default)">
           </div>
           <p class="hint pool-hint">The instructions are printed under every question of that kind. Leave a box empty for the standard text (shown in grey); type <code>none</code> to print nothing.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="block" aria-label="Page options">
+      <details class="pool print-opts" id="page-details">
+        <summary>Page Options <span class="summary-note">For collating, page organization, setting a title page.</span></summary>
+        <div class="pool-body">
+          <p class="hint pool-hint" id="pg-layout-note"></p>
+          <div class="choices tight po-checks" id="page-opts">
+            <label class="check"><input type="checkbox" data-po="collate-exams"><span><span class="label">Collate exams</span><span class="sub" data-desc="collate-exams"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="collate-answer-cards"><span><span class="label">Collate answer cards</span><span class="sub" data-desc="collate-answer-cards"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="title-page"><span><span class="label">Title page</span><span class="sub" data-desc="title-page"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="collate-title-pages"><span><span class="label">Collate title pages</span><span class="sub" data-desc="collate-title-pages"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="pad-title-page"><span><span class="label">Pad title page <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-title-page"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="pad-exam"><span><span class="label">Pad exam <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-exam"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="pad-answer-cards"><span><span class="label">Pad answer cards <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-answer-cards"></span></span></label>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="block" aria-label="Advanced options">
+      <details class="pool print-opts" id="adv-details">
+        <summary>Advanced Options <span class="summary-note">QR code quality, seed value.</span></summary>
+        <div class="pool-body">
+          <div class="form-grid">
+            <label for="adv-qr">QR code quality:</label>
+            <span><select id="adv-qr" class="select">
+              <option value="L">L: low (7% can be damaged): smallest code</option>
+              <option value="" selected>M: medium (15%), the default</option>
+              <option value="Q">Q: quartile (25%)</option>
+              <option value="H">H: high (30%): largest code</option>
+            </select></span>
+            <span class="grid-label"></span>
+            <span class="pool-of">How much of each QR code can be smudged, folded or written on and still read. Higher levels make denser codes; L helps cards with many questions or extra QR fields fit.</span>
+            <label for="adv-seed">Seed:</label>
+            <span><input type="text" id="adv-seed" class="text" inputmode="numeric" placeholder="random each time" spellcheck="false"> <span class="pool-of">the same seed, files and options print exactly the same exams again</span></span>
+          </div>
         </div>
       </details>
     </section>
