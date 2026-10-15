@@ -222,6 +222,7 @@ function onSummary(data) {
   else Object.assign(quiz, { state: "ready", summary: r });
   setMergedAvailable(r.error ? null : r);
   if (!r.error) resetPool(r);
+  showPrintDefaults();
   showQuiz();
 }
 
@@ -569,7 +570,7 @@ const SIDES = ["left", "right", "top", "bottom"];
 const marginMode = () => document.querySelector('input[name="po-margin-mode"]:checked').value;
 const aciMode = () => document.querySelector('input[name="po-aci"]:checked').value;
 let aciFiles = [];      // the answer-card instructions file and its images
-const PO_FLAGS = { "po-pad": "--pad-options", "po-points": "--show-points", "po-noinstr": "--no-quiz-instructions" };
+const PO_FLAGS = { "po-points": "--show-points", "po-noinstr": "--no-quiz-instructions" };
 const STANDARD_CALC = "Write your answer in the boxes on the answer card: one digit, minus sign or decimal point per box.";
 const STANDARD_FILL = "Write your answer in the box on the answer card.";
 
@@ -587,6 +588,7 @@ function printArgs() {
   const cols = parseInt($("po-option-columns").value, 10);
   if (cols > 1) a.push("--option-columns", String(cols));
   for (const [id, opt] of Object.entries(PO_FLAGS)) if ($(id).checked) a.push(opt);
+  if (!$("po-pad").checked) a.push("--no-option-pad");     // padding is the default from 0.4.3
   return a;
 }
 
@@ -700,9 +702,9 @@ function showPrintDefaults() {
   $("po-width-hint").textContent = `width of the written-answer boxes; bubbles and number cells scale with it (default ${w} for this layout; ` +
     (layout.id === "merged1" ? "60–255pt)" : layout.id === "merged2" ? `60–${iso ? 139 : 148}pt)` : "50pt up)");
   showPageOptions();
-  $("po-pad").closest("label").querySelector(".sub").textContent = merged
-    ? "Merged sheets print four bubbles (A–D) for every multiple-choice question, six (A–F) for questions with five or six options."
-    : "Answer cards print six bubbles (A–F) for every multiple-choice question, not one per printed option.";
+  $("po-pad").closest("label").querySelector(".sub").textContent = "Every multiple-choice question gets as many bubbles as the " +
+    "quiz's question with the most options" + (quiz.summary && quiz.summary.max_options ? ` (${quiz.summary.max_options} for this quiz)` : "") +
+    ", so every row looks the same (the default). Untick to print one bubble per option.";
 }
 
 for (const el of document.querySelectorAll("#print-details input, #print-details select")) {
@@ -744,7 +746,8 @@ function setPrintOptions(got) {
   any = any || aciWant !== "standard";
   $("po-option-columns").value = got["--option-columns"] || "1";
   for (const [id, opt] of Object.entries(PO_FLAGS)) $(id).checked = !!got[opt];
-  any = any || got["--no-option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
+  $("po-pad").checked = !got["--no-option-pad"];          // --pad-options (before 0.4.3) is now the default
+  any = any || got["--no-option-pad"] || got["--no-option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
   if (any) $("print-details").open = true;
   return any;
 }
@@ -1014,7 +1017,7 @@ function loadConfig(name, textIn) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
     if (o === "--use-item-banks") continue;   // the default since 0.3.18
-    if (["--password", "--ignore-item-banks", "--randomize-seats", "--pad-options", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
+    if (["--password", "--ignore-item-banks", "--randomize-seats", "--pad-options", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--no-option-dot"].includes(o)) { got[o] = true; continue; }
     if (o === "--option-dot") continue;   // the default
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
