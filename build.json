@@ -1,5 +1,5 @@
 {
- "version": "0.4.8",
+ "version": "0.4.9",
  "pyodide": "pyodide/",
  "pyodide_version": "0.29.5",
  "packages": [
@@ -14,5 +14,23 @@
   "reportlab-5.0.1-py3-none-any.whl",
   "segno-1.6.6-py3-none-any.whl"
  ],
- "app": "app-0.4.8.zip"
+ "app": "app-0.4.9.zip",
+ "cjk": {
+  "sc": {
+   "file": "fonts/cjk/NotoSansCJK-sc.ttf.gz",
+   "bytes": 11064692
+  },
+  "tc": {
+   "file": "fonts/cjk/NotoSansCJK-tc.ttf.gz",
+   "bytes": 11087240
+  },
+  "jp": {
+   "file": "fonts/cjk/NotoSansCJK-jp.ttf.gz",
+   "bytes": 11108367
+  },
+  "kr": {
+   "file": "fonts/cjk/NotoSansCJK-kr.ttf.gz",
+   "bytes": 11085631
+  }
+ }
 }

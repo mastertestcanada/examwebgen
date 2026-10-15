@@ -4,6 +4,8 @@
 "use strict";
 
 let py = null;
+let build = null;
+const cjkFonts = {};   // region -> font bytes, downloaded once per visit
 
 function post(type, data = {}) {
   self.postMessage({ type, ...data });
@@ -11,7 +13,7 @@ function post(type, data = {}) {
 
 async function load() {
   const t0 = performance.now();
-  const build = await (await fetch("build.json", { cache: "no-cache" })).json();
+  build = await (await fetch("build.json", { cache: "no-cache" })).json();
   post("status", { text: "Loading Python…" });
   const base = new URL(build.pyodide, self.location.href).href;
   importScripts(base + "pyodide.js");
@@ -24,11 +26,31 @@ async function load() {
   py.unpackArchive(app, "zip", { extractDir: "/app" });
   py.runPython("import sys; sys.path.insert(0, '/app')");
   const spec = JSON.parse(py.runPython("from mtbuilder import web_runner; web_runner.version()"));
-  post("ready", { spec, seconds: (performance.now() - t0) / 1000 });
+  post("ready", { spec, cjk: build.cjk || {}, seconds: (performance.now() - t0) / 1000 });
 }
 
-async function run({ files, argv, password }) {
+// The Chinese, Japanese or Korean font for a region: fetched from the site the first time a quiz
+// needs it (about 11 MB, gzipped), then kept for the rest of the visit.
+async function cjkFont(region) {
+  if (cjkFonts[region]) return cjkFonts[region];
+  const entry = (build.cjk || {})[region];
+  if (!entry) return null;
+  const names = { sc: "Simplified Chinese", tc: "Traditional Chinese", jp: "Japanese", kr: "Korean" };
+  post("progress", { text: `Downloading the ${names[region]} font (${Math.round(entry.bytes / 1e6)} MB; only the first time)…` });
+  const response = await fetch(entry.file);
+  if (!response.ok) throw new Error(`The ${names[region]} font could not be downloaded (${response.status}).`);
+  let data = new Uint8Array(await response.arrayBuffer());
+  if (data[0] === 0x1f && data[1] === 0x8b) {   // still gzipped (the server did not unpack it)
+    data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  }
+  post("progress", { text: "Making your exam…" });
+  cjkFonts[region] = data;
+  return data;
+}
+
+async function run({ files, argv, password, cjk }) {
   const t0 = performance.now();
+  const font = cjk ? await cjkFont(cjk) : null;
   py.setStdout({ batched: (text) => post("log", { text, stream: "stdout" }) });
   py.setStderr({ batched: (text) => post("log", { text, stream: "stderr" }) });
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
@@ -41,6 +63,12 @@ async function run({ files, argv, password }) {
       py.FS.mkdirTree(path.slice(0, path.lastIndexOf("/")));   // fonts/... go in folders of their own
       py.FS.writeFile(path, new Uint8Array(f.data));
     }
+  }
+  if (font) {
+    const path = `/work/in/fonts/cjk/NotoSansCJK-${cjk}.ttf`;
+    py.FS.mkdirTree("/work/in/fonts/cjk");
+    py.FS.writeFile(path, font);
+    argv = [...argv, "--cjk-font", path];
   }
   py.globals.set("web_argv", py.toPy(argv));
   py.globals.set("web_password", password || "");

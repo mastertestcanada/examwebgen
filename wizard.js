@@ -172,6 +172,7 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
 
 const clearExport = filePicker("export", "export-drop", "export-state", "Choose or drop the .zip file", (f) => {
   exportFile = f;
+  cjkRegion = null;     // a new export: follow its text again
   Object.assign(quiz, { state: f ? "reading" : "none", list: [], number: null, summary: null, message: "" });
   setMergedAvailable(null);
   showQuiz();
@@ -270,8 +271,35 @@ function showQuiz() {
     $("sum-note").textContent = notes.join(" ");
     $("sum-note").hidden = !notes.length;
   }
+  showCjk();
   update();
 }
+
+// ------------------------------------------------------------------ Chinese, Japanese and Korean text
+
+// A quiz with CJK text prints it in one region's writing style, with that region's Noto Sans CJK
+// font, which the worker downloads from this site the first time it is needed.
+const CJK_NAMES = { sc: "Simplified Chinese", tc: "Traditional Chinese", jp: "Japanese", kr: "Korean" };
+let cjkFonts = {};        // region -> {file, bytes}: the fonts this site has (build.json)
+let cjkRegion = null;     // the region chosen, or null to follow the quiz
+const quizCjk = () => (quiz.state === "ready" && quiz.summary ? quiz.summary.cjk : null);
+const cjkChosen = () => cjkRegion || quizCjk();
+
+function showCjk() {
+  const found = quizCjk();
+  $("cjk-row").hidden = !found;
+  if (!found) return;
+  const r = cjkChosen();
+  for (const radio of document.querySelectorAll('input[name="cjk"]')) radio.checked = radio.value === r;
+  const font = cjkFonts[r];
+  $("cjk-hint").textContent = !font
+    ? `This copy of MasterTest Web has no ${CJK_NAMES[r]} font, so these characters will print as “?”.`
+    : `This quiz has ${CJK_NAMES[found]} text` + (r === found ? "" : `; it will be printed in the ${CJK_NAMES[r]} style`) +
+      `. English and other text stays in the font you choose. The ${CJK_NAMES[r]} font (${Math.round(font.bytes / 1e6)} MB) is ` +
+      "downloaded when you generate, the first time only.";
+}
+for (const radio of document.querySelectorAll('input[name="cjk"]'))
+  radio.addEventListener("change", () => { if (radio.checked) { cjkRegion = radio.value; showCjk(); update(); } });
 
 // merged sheets print at most six options (A-F) per question in one column, four (A-D) in two
 const MERGED_LIMIT = { merged1: ["merged1_ok", 6], merged2: ["merged_ok", 4] };
@@ -998,6 +1026,7 @@ function update() {
 // the options for a run, without the files: the configuration that can be saved and loaded
 function options(run = false) {
   const a = [...layoutArgs(layout)];
+  if (quizCjk()) a.push("--cjk-region", cjkChosen());
   if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
   if (classFile && mode() === "variants") a.push("--variants", String(clamp($("variants"), parseInt($("variants").value, 10) || 1)));
   a.push(...classArgs());
@@ -1205,7 +1234,7 @@ function loadConfig(name, textIn) {
   const got = {}, rest = [], ignored = [];
   const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
     "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation",
-    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--option-font-size", "--option-columns",
+    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--cjk-region", "--option-font-size", "--option-columns",
     "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text",
     "--margin-left", "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading",
     "--answer-card-instructions", "--page-options", "--qr-quality", "--seed"]);
@@ -1224,6 +1253,8 @@ function loadConfig(name, textIn) {
   const size = got["--page-size"] || "letter";
   const iso = /^a[34]/i.test(size);
   setPaper(iso ? "iso" : "traditional");
+  cjkRegion = got["--cjk-region"] && got["--cjk-region"].toLowerCase() !== "auto" ? got["--cjk-region"].toLowerCase() : null;
+  showCjk();
   const id = LAYOUT_OF(size, got["--columns"]);
   if (!LAYOUTS.find((l) => l.id === id).unavailable) selectLayout(id, false);
   else selectLayout(id === "merged2" && !LAYOUTS[2].unavailable ? "merged1" : "booklet", false);
@@ -1468,7 +1499,8 @@ async function generate(password) {
     finish(false);
     return;
   }
-  worker.postMessage({ type: "run", files, argv: argv(password), password }, files.map((f) => f.data));
+  const cjk = quizCjk() && cjkFonts[cjkChosen()] ? cjkChosen() : null;
+  worker.postMessage({ type: "run", files, argv: argv(password), password, cjk }, files.map((f) => f.data));
 }
 
 $("back").addEventListener("click", () => { showStep(1); $("generate").focus(); });
@@ -1507,7 +1539,9 @@ function finish(ok, data) {
 }
 
 worker.onmessage = ({ data }) => {
-  if (data.type === "status") {
+  if (data.type === "progress") {
+    $("result-text").textContent = data.text;
+  } else if (data.type === "status") {
     $("engine-detail").textContent = "· " + data.text.replace(/…$/, "");
   } else if (data.type === "ready") {
     ready = true;
@@ -1515,6 +1549,8 @@ worker.onmessage = ({ data }) => {
     $("engine-detail").textContent = `· loaded in ${data.seconds.toFixed(0)} s`;
     $("version-line").textContent = `MasterTest Web ${data.spec.version}`;
     $("version-top").textContent = data.spec.version;
+    cjkFonts = data.cjk || {};
+    showCjk();
     if (exportFile && quiz.state === "reading") { showQuiz(); inspectExport(); }
     if (classFile && cls.state === "reading") { showClass(); inspectClass(); }
     update();
