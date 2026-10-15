@@ -31,7 +31,6 @@ The first visit downloads about 21 MB, which the browser then caches.
 | Path | What it is |
 |---|---|
 | `index.html`, `wizard.js` | The page: a two-step wizard. |
-| `advanced.html`, `advanced.js` | "All options": every option of the program. |
 | `worker.js`, `mastertest-logo.png` | Runs the program for both pages; the logo. |
 | `app-<version>.zip` | MasterTest Builder itself, its answer-card instructions, images and the DejaVu Sans fallback font. |
 | `pyodide/` | Pyodide (Python for the browser) with lxml, Pillow, cryptography and fontTools. |
