@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MasterTest – Privacy and Security Fact Sheet</title>
+<meta name="description" content="Where student data is with MasterTest Builder, Web and Marker, how it is protected, and what leaves the teacher's devices.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%230b74f2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<header class="site"><a href="/"><img src="/mastertest-logo.png" alt="MasterTest.ca"></a></header>
+<main>
+<h1>MasterTest – Privacy and Security Fact Sheet</h1>
+<p class="meta">Updated October 18, 2026</p>
+
+<h2>Summary</h2>
+<p>Student information handled with MasterTest stays on the teacher’s own computer and phone. MasterTest has no accounts, no analytics and no cloud storage of class lists, exams or grades, so MasterTest (the company) holds no student records.</p>
+<p>MasterTest has three parts. <strong>MasterTest Builder</strong> (a desktop program) and <strong>MasterTest Web</strong> (the same program running entirely in the browser) turn a Canvas quiz export and a class list into printed exams with answer cards. <strong>MasterTest Marker</strong> (an Android app) scans the completed cards with the phone’s camera, marks them and produces a grade file the teacher imports into Canvas.</p>
+<p>This sheet describes MasterTest Marker 0.4.11 and MasterTest Builder and Web 0.4.14, for institutions completing a Privacy Impact Assessment under FIPPA, MFIPPA or equivalent legislation.</p>
+
+<h2>Where student data is</h2>
+<p>The personal information involved is the student’s name, student number and seat (as the teacher chooses), their answers, and the score MasterTest Marker calculates.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Place</th><th>What it holds</th><th>Protection</th><th>Kept until</th></tr></thead>
+<tbody>
+<tr><td>Teacher’s computer (MasterTest Builder or Web)</td><td>Class list, generated exams and answer cards</td><td>Never uploaded: MasterTest Web runs in the browser and reads the class list locally</td><td>The teacher deletes the files</td></tr>
+<tr><td>Printed answer cards</td><td>Name, student number and seat in print and in the QR code, as selected by the teacher; the student’s answers once completed</td><td>Physical handling by the institution; extra class-list columns only if the teacher adds them</td><td>The institution’s paper-records practice</td></tr>
+<tr><td>Printed answer key</td><td>Correct answers</td><td>Optional password: the key’s QR code is encrypted and needs the password to load</td><td>The institution’s practice</td></tr>
+<tr><td>Teacher’s phone (MasterTest Marker)</td><td>Exams, straightened card images, names, numbers, answers, scores (camera photos are not kept)</td><td>AES-256-GCM encryption with a key in the phone’s Android Keystore; app-private storage; optional app lock</td><td>Deleted by the teacher, by automatic deletion, or when the app is uninstalled</td></tr>
+<tr><td>Grade file (CSV)</td><td>Names, student numbers, scores</td><td>Sent only when the teacher chooses, through the teacher’s own mail app, to an address the teacher enters</td><td>The recipient’s mailbox; the phone’s copy is removed after an hour</td></tr>
+<tr><td>Support report (optional)</td><td>Answers read, corrections, card image with name, number, seat and QR code blacked out</td><td>Sent only when the teacher chooses; never includes a camera photo or the student’s name or number; encrypted on the phone so only MasterTest can open it</td><td>Deleted by MasterTest once the issue is resolved, and within 12 months</td></tr>
+</tbody>
+</table></div>
+
+<h2>Storage, encryption and access on the phone</h2>
+<ul>
+<li><strong>Encrypted at rest.</strong> The exam list, scan records and card images are encrypted with AES-256-GCM. The key is generated on the phone inside the Android Keystore (in secure hardware where the phone has it), cannot be exported, and exists nowhere else. This is in addition to Android’s own device encryption.</li>
+<li><strong>App-private storage.</strong> Data sits in the app’s private folder, which other apps cannot read. Only the copies made for an email (a grade file, or an encrypted support report) can be handed to the mail app, and they are removed an hour later.</li>
+<li><strong>No backups, no transfer.</strong> Nothing from MasterTest Marker is included in Android’s Google Drive backup or copied when the teacher moves to a new phone. A new phone starts empty, so student data never ends up in a personal Google account.</li>
+<li><strong>Optional app lock.</strong> When turned on, the phone’s fingerprint, face or PIN is required whenever the app is opened or returns after two minutes in the background, and the app’s screens are hidden from recent-apps previews and screenshots.</li>
+<li><strong>No network use for student data.</strong> The app’s only internet use is checking a MasterTest Pro licence or subscription (see below), which carries no student information.</li>
+</ul>
+
+<h2>Retention and deletion</h2>
+<ul>
+<li><strong>Automatic deletion.</strong> In Settings, the teacher can have each exam deleted, with its scans and card images, 30, 90, 180 or 365 days after it was added. The exam list warns a week ahead and each exam shows its deletion date, so grades can be exported first. The default is off.</li>
+<li><strong>Delete individually.</strong> A single student’s result, or a whole exam with all its results, can be deleted at any time.</li>
+<li><strong>Delete all data.</strong> One action in Settings removes every exam, scan and card image from the phone.</li>
+<li><strong>Uninstalling</strong> the app removes everything it stored, including the encryption key.</li>
+<li><strong>Paper and files.</strong> Printed cards, answer keys and the files MasterTest Builder writes are kept and destroyed under the institution’s own records practices.</li>
+</ul>
+
+<h2>Data leaving the device and third parties</h2>
+<p>Nothing leaves the teacher’s devices automatically. The only flows are these:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Flow</th><th>Contents</th><th>Initiated by</th><th>Recipient</th></tr></thead>
+<tbody>
+<tr><td>Grade file</td><td>Names, student numbers, scores</td><td>The teacher, through their own mail app</td><td>The address the teacher enters (usually their institutional mailbox, for Canvas import)</td></tr>
+<tr><td>Support report</td><td>Card image with the student’s details blacked out, and the corrections, in one file encrypted for MasterTest (RSA-OAEP and AES-256-GCM)</td><td>The teacher, through their own mail app</td><td>support@mastertest.ca</td></tr>
+<tr><td>Licence check</td><td>A random install id created by the app, and the licence code or Google Play purchase token</td><td>The app, when Pro is activated and about weekly</td><td>MasterTest’s licence service (Google Apps Script and Google Sheets, operated by MasterTest)</td></tr>
+<tr><td>Subscription purchase</td><td>Payment details</td><td>The teacher, in Google Play</td><td>Google Play, under Google’s privacy policy; MasterTest never sees payment details</td></tr>
+</tbody>
+</table></div>
+<p><strong>What MasterTest (the company) receives:</strong> support reports a teacher chooses to send, and licence-check records (install ids, codes or order ids, dates). It does not receive class lists, exams, grades or scanned cards.</p>
+<p><strong>No analytics, advertising or tracking.</strong> The app contains no analytics, advertising or crash-reporting libraries and has no user accounts. MasterTest Web loads its program and fonts from mastertest.ca (hosted on GitHub Pages) but sends nothing back.</p>
+<p><strong>Where data is hosted.</strong> Student data is held only on the institution’s or teacher’s own devices. Licence records, which contain no student information, are stored in Google’s data centres. Email delivery depends on the teacher’s and the recipient’s mail providers.</p>
+<p><strong>Printed QR codes.</strong> A class-list card’s QR code carries the student’s name and student number (needed to match the grade to Canvas), the card’s serial, and any extra class-list columns the teacher selects. The name and number are also printed on the card, so the QR code reveals nothing beyond the printed text unless extra columns are added; teachers should add only what they need. Blank cards carry no student details at all: the student writes their name and fills in their number.</p>
+
+<h2>Recommended settings for institutions</h2>
+<ul>
+<li>Use institution-managed phones with a screen lock, or require a screen lock on personal phones used for marking.</li>
+<li>In MasterTest Marker’s Settings, turn on <strong>Lock with fingerprint, face or PIN</strong> and choose an <strong>automatic deletion</strong> period that matches your retention schedule (for example 180 days).</li>
+<li>Have teachers send grade files to their institutional email address, not a personal one.</li>
+<li>Password-protect answer keys when printing them, and add extra class-list columns to cards only when needed.</li>
+<li>At the end of a term or when a phone changes hands, use <strong>Delete all data</strong>.</li>
+</ul>
+<p>If your institution needs these settings enforced centrally on managed phones, contact us: MasterTest Marker can support Android managed configurations for this.</p>
+
+<h2>Contact</h2>
+<p>Privacy questions and requests: <a href="mailto:support@mastertest.ca">support@mastertest.ca</a></p>
+<address>Jonathan Graham · 5137 Bayfield Crescent, Burlington ON L7L 3J5</address>
+<p>Privacy policy: <a href="/privacy/marker/">https://mastertest.ca/privacy/marker</a></p>
+</main>
+<footer class="site"><a href="/privacy/marker/">MasterTest Marker privacy policy</a> · <a href="/">MasterTest Web</a></footer>
+</body>
+</html>
