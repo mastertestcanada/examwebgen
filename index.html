@@ -131,6 +131,12 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .sum-title { font-weight: 700; }
 .sum-kinds { color: var(--muted); font-size: .9rem; }
 .sum-note { font-size: .88rem; margin-top: .3rem !important; }
+.sum-read { margin-top: .6rem; font-size: .88rem; }
+.sum-read summary { cursor: pointer; font-weight: 700; }
+.sum-read ol { margin: .4rem 0 0; padding-left: 1.6rem; }
+.sum-read li { margin: .15rem 0; }
+.sum-read .ans { font-weight: 700; }
+.sum-read .k { color: var(--muted); }
 
 /* layout carousel */
 .carousel { position: relative; }
@@ -417,13 +423,13 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 
     <section class="block" aria-labelledby="files-h">
       <h2 id="files-h">Files</h2>
-      <p class="hint">Export the quiz from Canvas as a QTI .zip file. A class list is optional: it gives each student a card with their name and number.</p>
+      <p class="hint">Export the quiz from Canvas as a QTI .zip file, or choose a Word document (.docx) written for Akindi's importer. A class list is optional: it gives each student a card with their name and number.</p>
       <div class="files">
         <label class="drop" id="export-drop">
-          <input type="file" id="export" accept=".zip,application/zip">
+          <input type="file" id="export" accept=".zip,application/zip,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 2.8h8l4.2 4.2v14.2H6z"/><path d="M14 2.8V7h4.2"/><path d="M10 7h1.5M10 9.5h1.5M10 12h1.5"/><rect x="9.4" y="14" width="2.7" height="3.4" rx=".4"/></svg>
           <span class="title">Quiz export <span class="tag">required</span></span>
-          <span class="state" id="export-state">Choose or drop the .zip file</span>
+          <span class="state" id="export-state">Choose or drop the .zip or .docx file</span>
         </label>
         <label class="drop" id="class-drop">
           <input type="file" id="classlist" accept=".csv,text/csv">
@@ -448,6 +454,10 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
               <p class="sum-note" id="sum-note" hidden></p>
             </div>
           </div>
+          <details class="sum-read" id="sum-read" hidden>
+            <summary>Check what was read from the Word document</summary>
+            <ol id="sum-read-list"></ol>
+          </details>
           <fieldset class="paper-row cjk-row" id="cjk-row" hidden>
             <legend>Chinese, Japanese and Korean text:</legend>
             <label class="bubble inline"><input type="radio" name="cjk" value="sc"><span class="label" lang="zh-Hans">简体中文</span><span class="sub">Simplified Chinese</span></label>

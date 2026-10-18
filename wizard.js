@@ -172,7 +172,7 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
   return () => { input.value = ""; show(null); };
 }
 
-const clearExport = filePicker("export", "export-drop", "export-state", () => tr("Choose or drop the .zip file"), (f) => {
+const clearExport = filePicker("export", "export-drop", "export-state", () => tr("Choose or drop the .zip or .docx file"), (f) => {
   exportFile = f;
   cjkRegion = null;     // a new export: follow its text again
   Object.assign(quiz, { state: f ? "reading" : "none", list: [], number: null, summary: null, message: "" });
@@ -280,6 +280,20 @@ function showQuiz() {
     else if (!s.merged_ok) notes.push(tr("At least one question has {n} options, so the Merged Two Column Layout is not available. If you want to use this layout make sure multiple-choice questions have no more than 4 options.", { n: s.max_options }));
     $("sum-note").textContent = notes.join(" ");
     $("sum-note").hidden = !notes.length;
+    // a Word document is read by guessing at its layout: what was read, to check against it
+    $("sum-read").hidden = !s.read;
+    if (s.read) {
+      $("sum-read").open = true;
+      $("sum-read-list").replaceChildren(...s.read.map((q) => {
+        const li = document.createElement("li");
+        li.value = q.number;
+        li.innerHTML = '<span class="k"></span> <span class="ans"></span> <span class="t"></span>';
+        li.querySelector(".k").textContent = tr(q.kind) + ":";
+        li.querySelector(".ans").textContent = q.answer ? q.answer : tr("(marked by hand)");
+        li.querySelector(".t").textContent = "– " + q.text;
+        return li;
+      }));
+    }
   }
   showCjk();
   update();
@@ -1080,7 +1094,7 @@ function update() {
   $("generate").disabled = !ok;
   $("why").textContent = !exportFile ? tr("Choose the quiz export to continue.")
     : !ready ? tr("Generate is ready once the exam maker has loaded.")
-    : quiz.state === "error" ? tr("Choose a Canvas quiz export (.zip) to continue.")
+    : quiz.state === "error" ? tr("Choose a Canvas quiz export (.zip) or a Word document (.docx) to continue.")
     : quiz.state === "choose" ? tr("Choose which quiz to print.")
     : !quizReady ? tr("Reading the quiz…")
     : !(hasClass || b > 0) ? tr("Choose a class list or at least one blank card.")
@@ -1269,7 +1283,7 @@ function offerConfig(data) {
   configUrl = URL.createObjectURL(new Blob([configText(data.seed)], { type: "text/plain" }));
   const a = $("config-download");
   a.href = configUrl;
-  a.download = data.name.replace(/\.zip$/i, "") + "_config.txt";
+  a.download = data.name.replace(/\.(zip|docx)$/i, "") + "_config.txt";
   $("config-link").hidden = false;
 }
 
