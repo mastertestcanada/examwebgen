@@ -1,5 +1,5 @@
 {
- "version": "0.4.15",
+ "version": "0.4.16",
  "pyodide": "pyodide/",
  "pyodide_version": "0.29.5",
  "packages": [
@@ -14,7 +14,7 @@
   "reportlab-5.0.1-py3-none-any.whl",
   "segno-1.6.6-py3-none-any.whl"
  ],
- "app": "app-0.4.15.zip",
+ "app": "app-0.4.16.zip",
  "cjk": {
   "sc": {
    "file": "fonts/cjk/NotoSansCJK-sc.ttf.gz",

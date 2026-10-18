@@ -287,9 +287,10 @@ function showQuiz() {
       $("sum-read-list").replaceChildren(...s.read.map((q) => {
         const li = document.createElement("li");
         li.value = q.number;
-        li.innerHTML = '<span class="k"></span> <span class="ans"></span> <span class="t"></span>';
+        li.innerHTML = '<span class="k"></span> <span class="ans"></span> <span class="pts"></span> <span class="t"></span>';
         li.querySelector(".k").textContent = tr(q.kind) + ":";
         li.querySelector(".ans").textContent = q.answer ? q.answer : tr("(marked by hand)");
+        li.querySelector(".pts").textContent = "(" + trn(Number(q.points), "{n} point", "{n} points", { n: uiLang === "fr" ? q.points.replace(".", ",") : q.points }) + ")";
         li.querySelector(".t").textContent = "– " + q.text;
         return li;
       }));
