@@ -38,7 +38,7 @@ The first visit downloads about 21 MB, which the browser then caches.
 | `fonts/` | Atkinson Hyperlegible for the page, and MasterTest Enclosed for its examples of the option letters (SIL Open Font License). |
 | `fonts/cjk/` | Noto Sans CJK for Simplified and Traditional Chinese, Japanese and Korean (SIL Open Font License, `fonts/cjk/OFL.txt`), converted to TrueType; the page downloads one only when a quiz has text in those languages. |
 | `build.json` | What the page loads, and the versions. |
-| `CHANGELOG.md` | Changes to MasterTest Builder and MasterTest Marker. |
+| `CHANGELOG.md` | Changes to MasterTest Builder and MasterTest Web. |
 
 ## Updates
 

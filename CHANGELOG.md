@@ -2,7 +2,7 @@
 
 Versions are written Major.Minor.Patch. The patch level goes up by one every
 time an application is changed and built; the major and minor numbers change
-only when requested.
+only when requested. MasterTest Web shares MasterTest Builder's version.
 
 ## MasterTest Builder
 
