@@ -311,6 +311,8 @@ const I18N = { fr: {
   "{n} true/false": "{n} vrai ou faux",
   "{n} calculated": "{n} calculée(s)",
   "{n} fill in the blank": "{n} texte(s) à trous",
+  "{n} matching": "{n} association(s)",
+  "matching": "association",
   "Each exam gets {per} of them: the quiz's item banks pick some of their questions (“pick N”). Alter the question pool to change this.": "Chaque examen en reçoit {per} : les banques d'items du questionnaire choisissent certaines de leurs questions (« choisir N »). Modifiez la banque de questions pour changer cela.",
   "{n} question was left out because it cannot be printed: {list}": "{n} question a été omise parce qu'elle ne peut pas être imprimée : {list}",
   "{n} questions were left out because they cannot be printed: {list}": "{n} questions ont été omises parce qu'elles ne peuvent pas être imprimées : {list}",
