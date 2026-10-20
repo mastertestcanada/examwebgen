@@ -1093,8 +1093,15 @@ function update() {
   const classIssue = classProblem() || printProblem();
   const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem && !classIssue;
   $("generate").disabled = !ok;
-  $("why").textContent = !exportFile ? tr("Choose the quiz export to continue.")
-    : !ready ? tr("Create Exam Packet is ready once the exam maker has loaded.")
+  if (!exportFile) {
+    // a link that opens the file chooser for the quiz export
+    const load = document.createElement("button");
+    load.type = "button"; load.className = "link"; load.textContent = tr("Load a QTI/Akindi file to continue.");
+    load.addEventListener("click", () => $("export").click());
+    $("why").replaceChildren(load);
+    return;
+  }
+  $("why").textContent = !ready ? tr("Create Exam Packet is ready once the exam maker has loaded.")
     : quiz.state === "error" ? tr("Choose a Canvas quiz export (.zip) or a Word document (.docx) to continue.")
     : quiz.state === "choose" ? tr("Choose which quiz to print.")
     : !quizReady ? tr("Reading the quiz…")

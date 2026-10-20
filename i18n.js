@@ -434,7 +434,7 @@ const I18N = { fr: {
   "Every multiple-choice question gets as many bubbles as the quiz's question with the most options ({n} for this quiz), so every row looks the same (the default). Untick to print one bubble per option.": "Chaque question à choix multiple reçoit autant de bulles que la question du questionnaire qui a le plus de choix ({n} pour ce questionnaire), pour que toutes les lignes se ressemblent (par défaut). Décochez pour imprimer une bulle par choix.",
   "The configuration used {f}: choose it (and its images) again.": "La configuration utilisait {f} : choisissez-le de nouveau (avec ses images).",
   "(Load a class list to use either of the options below)": "(Chargez une liste de classe pour utiliser l'une ou l'autre des options ci-dessous)",
-  "Choose the quiz export to continue.": "Choisissez l'export du questionnaire pour continuer.",
+  "Load a QTI/Akindi file to continue.": "Chargez un fichier QTI ou Akindi pour continuer.",
   "Create Exam Packet is ready once the exam maker has loaded.": "Créer la trousse d'examen sera possible une fois le générateur d'examens chargé.",
   "Choose a Canvas quiz export (.zip) to continue.": "Choisissez un export de questionnaire Canvas (.zip) pour continuer.",
   "Choose which quiz to print.": "Choisissez le questionnaire à imprimer.",
