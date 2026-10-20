@@ -1081,7 +1081,14 @@ const mode = () => document.querySelector('input[name="mode"]:checked').value;
 function update() {
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
-  $("exams-hint").textContent = hasClass ? "" : tr("(Load a class list to use either of the options below)");
+  if (hasClass) $("exams-hint").replaceChildren();
+  else {
+    // a link that opens the file chooser for the class list
+    const load = document.createElement("button");
+    load.type = "button"; load.className = "link"; load.textContent = tr("(Load a class list to use either of the options below)");
+    load.addEventListener("click", () => $("classlist").click());
+    $("exams-hint").replaceChildren(load);
+  }
   $("exams-hint").hidden = hasClass;
   const variantsOn = hasClass && mode() === "variants";
   $("variants").disabled = !variantsOn;

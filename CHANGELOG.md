@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.3   | 2026-10-20 | MasterTest Web: "(Load a class list to use either of the options below)" in the Exams section is a link that opens the file chooser for the class list. |
 | 0.5.2   | 2026-10-20 | MasterTest Web: before a quiz is chosen, the line beside Create Exam Packet reads "Load a QTI/Akindi file to continue." and opens the file chooser for it when clicked. |
 | 0.5.1   | 2026-10-19 | MasterTest Web: without a class list, the Exams section says "(Load a class list to use either of the options below)". |
 | 0.5.0   | 2026-10-19 | The minor version goes up to 0.5 (the patch level still goes up with every build). MasterTest Web: the Paper Size and Printed in choices line up (ISO under Français); the Generate button is now **Create Exam Packet**; Print Options says that the font and font size replace those of the original quiz; the blank-card hint is reworded (replacement cards, or no class list), and the line under Exams for the class list is gone. |
