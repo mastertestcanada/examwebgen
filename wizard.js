@@ -1081,7 +1081,7 @@ const mode = () => document.querySelector('input[name="mode"]:checked').value;
 function update() {
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
-  $("exams-hint").textContent = hasClass ? "" : tr("A unique exam for each student and variants need a class list.");
+  $("exams-hint").textContent = hasClass ? "" : tr("(Load a class list to use either of the options below)");
   $("exams-hint").hidden = hasClass;
   const variantsOn = hasClass && mode() === "variants";
   $("variants").disabled = !variantsOn;
