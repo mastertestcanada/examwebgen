@@ -247,6 +247,15 @@ section.paper { padding: 1rem 0; }
 .cjk-row legend { font-weight: 700; font-size: .95rem; margin-bottom: .45rem; }
 .cjk-row .pool-hint { flex-basis: 100%; margin-top: .4rem; }
 .plang-note { align-self: center; }
+/* Paper Size and Printed in: the second choice of each row starts at the same place */
+@media (min-width: 44rem) {
+  .paper-pair { display: grid; grid-template-columns: 10.5rem 16rem minmax(0, 1fr); align-items: start; row-gap: .4rem; }
+  .paper-pair .bubble.inline { display: grid; grid-template-columns: auto 1fr; gap: 0 .55rem; align-items: center; }
+  .paper-pair .bubble.inline input { grid-row: span 2; align-self: start; margin-top: .12rem; }
+  .paper-pair legend { margin: 0; }
+  .paper-pair .plang-note { grid-column: 2 / -1; }
+}
+.grid-note { grid-column: 2; margin: -.3rem 0 0; }
 .summary-note { flex: 1 1 18rem; line-height: 1.4; }
 .pool > summary::-webkit-details-marker { display: none; }
 .pool > summary::before { content: ""; flex: none; align-self: center; width: .5rem; height: .5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
@@ -573,12 +582,12 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
     </section>
 
     <section class="block paper" aria-labelledby="paper-h">
-      <fieldset class="paper-row">
+      <fieldset class="paper-row paper-pair">
         <legend id="paper-h">Paper Size:</legend>
         <label class="bubble inline"><input type="radio" name="paper" value="traditional" checked><span class="label">Traditional</span><span class="sub">Letter and tabloid</span></label>
         <label class="bubble inline"><input type="radio" name="paper" value="iso"><span class="label">ISO</span><span class="sub">A4 and A3</span></label>
       </fieldset>
-      <fieldset class="paper-row">
+      <fieldset class="paper-row paper-pair">
         <legend id="plang-h">Printed in:</legend>
         <label class="bubble inline"><input type="radio" name="plang" value="en" checked><span class="label">English</span><span class="sub">instructions, headings and labels</span></label>
         <label class="bubble inline"><input type="radio" name="plang" value="fr"><span class="label" lang="fr">Français</span><span class="sub" lang="fr">consignes, titres et étiquettes</span></label>
@@ -621,6 +630,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <span><select id="po-font" class="select font-pick" data-default="Helvetica"></select> <input type="file" id="po-font-file" accept=".ttf,.otf,.ttc" multiple hidden> <span class="pool-of" id="po-font-state"></span></span>
             <label for="po-font-size">Font size:</label>
             <span><input type="number" id="po-font-size" class="text short" min="4" max="72" step="0.5" inputmode="decimal"> <span class="pool-of" id="po-font-size-hint">points</span></span>
+            <p class="pool-of grid-note">The font and font size replace the fonts and font sizes used in the original quiz.</p>
             <label for="po-spacing">Question spacing:</label>
             <span><input type="text" id="po-spacing" class="text short" placeholder="automatic" spellcheck="false"> <span class="pool-of">space between questions, e.g. 12pt, 0.25in, 5mm (default 0.9 × the font size)</span></span>
             <label for="po-option-font">Option font:</label>
@@ -760,7 +770,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         </div>
       </fieldset>
       <h3 class="sub-h" id="blanks-h">How many cards should we make for students not in the class list?</h3>
-      <p class="hint">You can also use this if you don't want to upload a class list. Students can write their name by hand and either bubble in or write their student number.</p>
+      <p class="hint">On these cards students can write their name by hand and either bubble in or write their student number. Use this to have replacement cards on hand or if you don't want to upload a class list.</p>
       <span class="stepper">
         <button type="button" data-step="blanks" data-by="-1" aria-label="Fewer blank cards">−</button>
         <input type="number" id="blanks" min="0" max="999" value="0" inputmode="numeric" aria-labelledby="blanks-h">
@@ -771,7 +781,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 
 
     <div class="actions">
-      <button type="button" class="primary" id="generate" disabled>Generate</button>
+      <button type="button" class="primary" id="generate" disabled>Create Exam Packet</button>
       <span class="why" id="why" aria-live="polite"></span>
     </div>
   </div>

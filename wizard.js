@@ -1,5 +1,5 @@
 // MasterTest Web: the step-by-step page. Step 1 collects the quiz export, an optional class list,
-// the question pool, paper size and layout, variants and blank cards; Generate asks for an optional
+// the question pool, paper size and layout, variants and blank cards; Create Exam Packet asks for an optional
 // answer-key password, runs MasterTest Builder in the worker (in this tab's memory) and step 2
 // hands over the zip and the exam configuration (an options file that the command line reads
 // too, and that "Load Previous Exam Config" reads back)..
@@ -1081,8 +1081,8 @@ const mode = () => document.querySelector('input[name="mode"]:checked').value;
 function update() {
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
-  $("exams-hint").textContent = hasClass ? tr("How the exams for the students on the class list differ.")
-    : tr("A unique exam for each student and variants need a class list.");
+  $("exams-hint").textContent = hasClass ? "" : tr("A unique exam for each student and variants need a class list.");
+  $("exams-hint").hidden = hasClass;
   const variantsOn = hasClass && mode() === "variants";
   $("variants").disabled = !variantsOn;
   for (const b of document.querySelectorAll('[data-step="variants"]')) b.disabled = !variantsOn;
@@ -1094,7 +1094,7 @@ function update() {
   const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem && !classIssue;
   $("generate").disabled = !ok;
   $("why").textContent = !exportFile ? tr("Choose the quiz export to continue.")
-    : !ready ? tr("Generate is ready once the exam maker has loaded.")
+    : !ready ? tr("Create Exam Packet is ready once the exam maker has loaded.")
     : quiz.state === "error" ? tr("Choose a Canvas quiz export (.zip) or a Word document (.docx) to continue.")
     : quiz.state === "choose" ? tr("Choose which quiz to print.")
     : !quizReady ? tr("Reading the quiz…")
