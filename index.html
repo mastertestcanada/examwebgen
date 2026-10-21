@@ -129,6 +129,12 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .summary .unit { font-size: .8rem; color: var(--muted); }
 .summary p { margin: 0; }
 .sum-title { font-weight: 700; }
+.title-edit { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; }
+.title-input { font: inherit; font-weight: 700; color: inherit; flex: 1 1 16rem; min-width: 0; padding: .25rem .4rem; margin-left: -.4rem;
+  border: 1px solid transparent; border-radius: 4px; background: transparent; }
+.title-input:hover { border-color: var(--rule); }
+.title-input:focus { border-color: var(--accent); outline: none; background: var(--paper); }
+.title-hint { color: var(--muted); font-size: .82rem; margin: 0 0 .3rem; }
 .sum-kinds { color: var(--muted); font-size: .9rem; }
 .sum-note { font-size: .88rem; margin-top: .3rem !important; }
 .sum-read { margin-top: .6rem; font-size: .88rem; }
@@ -461,7 +467,11 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
           <div class="summary-grid">
             <div class="count"><span class="n" id="sum-n"></span><span class="unit" id="sum-unit">questions</span></div>
             <div>
-              <p class="sum-title" id="sum-title"></p>
+              <div class="title-edit">
+                <input type="text" id="sum-title" class="title-input" aria-label="Exam name, as printed" spellcheck="true" maxlength="200">
+                <button type="button" class="link" id="title-reset" hidden>Use the quiz's name</button>
+              </div>
+              <p class="title-hint">The name printed on the exams, answer cards and answer key. Edit it to print another.</p>
               <p class="sum-kinds" id="sum-kinds"></p>
               <p class="sum-note" id="sum-note" hidden></p>
             </div>

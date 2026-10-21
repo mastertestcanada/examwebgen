@@ -14,6 +14,8 @@ let classFile = null;
 let downloadUrl = null;
 // the quiz in the export: reading -> (choose) -> loading -> ready, or error
 const quiz = { state: "none", list: [], number: null, summary: null, message: "" };
+// the quiz's own name, and which quiz it belongs to; the name field may hold another (titleArgs, --title)
+const quizTitle = { for: "", name: "" };
 let paper = "traditional";      // traditional: letter and tabloid; iso: A4 and A3
 let extras = [];                // options from a loaded configuration that the page has no control for
 let pending = null;             // settings from a loaded configuration still waiting for the export: {quiz, maxItems, titleMap}
@@ -269,7 +271,13 @@ function showQuiz() {
   if (quiz.state === "ready" && s) {
     $("sum-n").textContent = s.questions;
     $("sum-unit").textContent = trn(s.questions, "question", "questions");
-    $("sum-title").textContent = s.title;
+    // the exam's name: the quiz's own until the user edits it (--title); a new quiz starts again from its name
+    const titleFor = `${exportFile ? exportFile.name : ""}|${quiz.number}|${s.title}`;
+    if (quizTitle.for !== titleFor) {
+      Object.assign(quizTitle, { for: titleFor, name: s.title });
+      $("sum-title").value = s.title;
+      $("title-reset").hidden = true;
+    }
     $("sum-kinds").textContent = Object.entries(s.kinds).map(([k, n]) => tr("{n} " + k, { n })).join(", ");
     const notes = [];
     if (s.pick_rules.length)
@@ -1136,8 +1144,16 @@ function update() {
 }
 
 // the options for a run, without the files: the configuration that can be saved and loaded
+function titleArgs() {
+  const v = $("sum-title").value.trim().replace(/\s+/g, " ");
+  return v && v !== quizTitle.name ? ["--title", v] : [];
+}
+$("sum-title").addEventListener("input", () => { $("title-reset").hidden = !titleArgs().length; });
+$("title-reset").addEventListener("click", () => { $("sum-title").value = quizTitle.name; $("title-reset").hidden = true; });
+
 function options(run = false) {
   const a = [...layoutArgs(layout)];
+  if (run) a.push(...titleArgs());     // for this run only: a saved configuration is used with other quizzes
   if (quizCjk()) a.push("--cjk-region", cjkChosen());
   a.push(...langArgs());
   if (quiz.list.length > 1) a.push("--quiz", String(quiz.number));
