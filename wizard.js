@@ -694,6 +694,8 @@ function printArgs(run) {
   for (const [id, opt] of Object.entries(PO_FLAGS)) if ($(id).checked) a.push(opt);
   if (!$("po-pad").checked) a.push("--no-option-pad");     // padding is the default from 0.4.3
   if ($("po-rules").checked !== rulesDefault()) a.push("--question-rules", $("po-rules").checked ? "on" : "off");
+  if ($("po-essay").value !== "1/4") a.push("--essay-space", $("po-essay").value);
+  if ($("po-essay-all").checked) a.push("--essay-space-all");
   return a;
 }
 
@@ -1065,7 +1067,9 @@ function setPrintOptions(got) {
   rulesChosen = rules === "on" ? true : rules === "off" ? false : null;
   if (rulesChosen === rulesDefault()) rulesChosen = null;
   $("po-rules").checked = rulesChosen === null ? rulesDefault() : rulesChosen;
-  any = any || rulesChosen !== null || got["--no-option-pad"] || got["--option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
+  $("po-essay").value = ["1/4", "1/2", "3/4", "1"].includes(got["--essay-space"]) ? got["--essay-space"] : "1/4";
+  $("po-essay-all").checked = !!got["--essay-space-all"];
+  any = any || $("po-essay").value !== "1/4" || $("po-essay-all").checked || rulesChosen !== null || got["--no-option-pad"] || got["--option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
   if (any) $("print-details").open = true;
   return any;
 }
@@ -1366,7 +1370,7 @@ function loadConfig(name, textIn) {
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
     if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
-    if (["--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--option-dot"].includes(o)) { got[o] = true; continue; }
+    if (["--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--option-dot", "--essay-space-all"].includes(o)) { got[o] = true; continue; }
     if (o === "--no-option-dot") continue;   // the default
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
