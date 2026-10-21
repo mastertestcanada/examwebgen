@@ -633,6 +633,11 @@ const marginMode = () => document.querySelector('input[name="po-margin-mode"]:ch
 const aciMode = () => document.querySelector('input[name="po-aci"]:checked').value;
 let aciFiles = [];      // the answer-card instructions file and its images
 const PO_FLAGS = { "po-points": "--show-points", "po-noinstr": "--no-quiz-instructions" };
+// --question-rules: on by default for one-column merged sheets; the box follows the layout until ticked by hand
+let rulesChosen = null;
+const rulesDefault = () => !!layout && layout.id === "merged1";
+function showRules() { if (rulesChosen === null) $("po-rules").checked = rulesDefault(); }
+$("po-rules").addEventListener("change", () => { rulesChosen = $("po-rules").checked === rulesDefault() ? null : $("po-rules").checked; update(); });
 // ------------------------------------------------------------------ print language and decimal mark
 
 // --print-language: the language of the printed instructions, headings and labels (the quiz is
@@ -688,6 +693,7 @@ function printArgs(run) {
   if (cols > 1) a.push("--option-columns", String(cols));
   for (const [id, opt] of Object.entries(PO_FLAGS)) if ($(id).checked) a.push(opt);
   if (!$("po-pad").checked) a.push("--no-option-pad");     // padding is the default from 0.4.3
+  if ($("po-rules").checked !== rulesDefault()) a.push("--question-rules", $("po-rules").checked ? "on" : "off");
   return a;
 }
 
@@ -1005,6 +1011,7 @@ function showPrintDefaults() {
   const iso = paper === "iso";
   const w = layout.id === "merged1" ? "180pt" : layout.id === "merged2" ? "90pt" : iso ? "91pt" : "95pt";
   $("po-width").placeholder = w;
+  showRules();
   $("po-width-hint").textContent = tr("width of the written-answer boxes; bubbles and number cells scale with it (default {w} for this layout; {range})",
     { w, range: layout.id === "merged1" ? "60–255pt" : layout.id === "merged2" ? `60–${iso ? 139 : 148}pt` : tr("50pt up") });
   showPageOptions();
@@ -1054,7 +1061,11 @@ function setPrintOptions(got) {
   $("po-option-columns").value = got["--option-columns"] || "1";
   for (const [id, opt] of Object.entries(PO_FLAGS)) $(id).checked = !!got[opt];
   $("po-pad").checked = !got["--no-option-pad"];
-  any = any || got["--no-option-pad"] || got["--option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
+  const rules = (got["--question-rules"] || "").toLowerCase();
+  rulesChosen = rules === "on" ? true : rules === "off" ? false : null;
+  if (rulesChosen === rulesDefault()) rulesChosen = null;
+  $("po-rules").checked = rulesChosen === null ? rulesDefault() : rulesChosen;
+  any = any || rulesChosen !== null || got["--no-option-pad"] || got["--option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
   if (any) $("print-details").open = true;
   return any;
 }

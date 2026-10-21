@@ -197,6 +197,8 @@ const I18N = { fr: {
   "Pad Options": "Compléter les choix",
   "Every multiple-choice question gets as many bubbles as the question with the most options (the default). Untick to print one bubble per option.": "Chaque question à choix multiple reçoit autant de bulles que la question qui a le plus de choix (par défaut). Décochez pour imprimer une bulle par choix.",
   "Show Points": "Afficher les points",
+  "Rule Between Questions": "Ligne entre les questions",
+  "A thin grey line between one question and the next, so each question is easy to follow across to its answer. On by default for Merged One Column.": "Une fine ligne grise entre chaque question et la suivante, pour suivre facilement chaque question jusqu'à sa réponse. Activée par défaut pour Fusionné, une colonne.",
   "Print each question's point value.": "Imprimer la valeur en points de chaque question.",
   "Suppress Quiz Instructions": "Omettre les consignes du questionnaire",
   "Leave out the quiz's instructions from Canvas.": "Ne pas imprimer les consignes du questionnaire Canvas.",
