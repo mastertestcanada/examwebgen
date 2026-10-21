@@ -1149,6 +1149,7 @@ function titleArgs() {
   return v && v !== quizTitle.name ? ["--title", v] : [];
 }
 $("sum-title").addEventListener("input", () => { $("title-reset").hidden = !titleArgs().length; });
+$("title-edit").addEventListener("click", () => { $("sum-title").focus(); $("sum-title").select(); });
 $("title-reset").addEventListener("click", () => { $("sum-title").value = quizTitle.name; $("title-reset").hidden = true; });
 
 function options(run = false) {

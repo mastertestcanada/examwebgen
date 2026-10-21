@@ -130,10 +130,15 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .summary p { margin: 0; }
 .sum-title { font-weight: 700; }
 .title-edit { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; }
-.title-input { font: inherit; font-weight: 700; color: inherit; flex: 1 1 16rem; min-width: 0; padding: .25rem .4rem; margin-left: -.4rem;
-  border: 1px solid transparent; border-radius: 4px; background: transparent; }
-.title-input:hover { border-color: var(--rule); }
-.title-input:focus { border-color: var(--accent); outline: none; background: var(--paper); }
+/* the exam name: an editable field that looks it (dashed underline, pencil), solid when in use */
+.title-box { position: relative; display: flex; flex: 1 1 16rem; min-width: 0; }
+.title-input { font: inherit; font-weight: 700; color: inherit; width: 100%; min-width: 0; padding: .25rem 1.9rem .25rem .4rem;
+  margin-left: -.4rem; border: 1px dashed var(--rule); border-radius: 4px; background: transparent; cursor: text; }
+.title-input:hover { border-color: var(--muted); border-style: solid; }
+.title-input:focus { border: 1px solid var(--accent); outline: none; background: var(--paper); }
+.title-pencil { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%); display: flex; padding: .2rem;
+  border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 3px; }
+.title-pencil:hover, .title-input:focus + .title-pencil { color: var(--accent); }
 .title-hint { color: var(--muted); font-size: .82rem; margin: 0 0 .3rem; }
 .sum-kinds { color: var(--muted); font-size: .9rem; }
 .sum-note { font-size: .88rem; margin-top: .3rem !important; }
@@ -468,10 +473,15 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <div class="count"><span class="n" id="sum-n"></span><span class="unit" id="sum-unit">questions</span></div>
             <div>
               <div class="title-edit">
-                <input type="text" id="sum-title" class="title-input" aria-label="Exam name, as printed" spellcheck="true" maxlength="200">
+                <span class="title-box">
+                  <input type="text" id="sum-title" class="title-input" aria-label="Exam name, as printed" spellcheck="true" maxlength="200">
+                  <button type="button" class="title-pencil" id="title-edit" aria-label="Edit the exam name" title="Edit the exam name">
+                    <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M13.6 3.2l3.2 3.2L7.4 15.8 3.4 16.6l.8-4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.8 5l3.2 3.2" stroke="currentColor" stroke-width="1.6"/></svg>
+                  </button>
+                </span>
                 <button type="button" class="link" id="title-reset" hidden>Use the quiz's name</button>
               </div>
-              <p class="title-hint">The name printed on the exams, answer cards and answer key. Edit it to print another.</p>
+              <p class="title-hint">Click the name to change it: it is printed on the exams, answer cards and answer key.</p>
               <p class="sum-kinds" id="sum-kinds"></p>
               <p class="sum-note" id="sum-note" hidden></p>
             </div>
