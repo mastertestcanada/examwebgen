@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.4   | 2026-10-20 | Merged quizzes: the Title page option (`--page-options title-page`) decides where the quiz instructions go, as for booklets. With it, a title page with the quiz title and instructions comes before the first sheet (made smaller to fit; not scanned), and `pad-title-page` adds a blank page after it. Without it, the instructions are printed above the questions on the first sheet however long they are; previously instructions longer than half a column always got a cover page. When they leave no room for question 1, the program says to shorten them, use a title page or leave them out. Fix: on two-column merged sheets, the right-hand column of the first sheet could start over the instructions; it now starts below them. MasterTest Web: Title page and Pad title page are available for the merged layouts. |
 | 0.5.3   | 2026-10-20 | MasterTest Web: "(Load a class list to use either of the options below)" in the Exams section is a link that opens the file chooser for the class list. |
 | 0.5.2   | 2026-10-20 | MasterTest Web: before a quiz is chosen, the line beside Create Exam Packet reads "Load a QTI/Akindi file to continue." and opens the file chooser for it when clicked. |
 | 0.5.1   | 2026-10-19 | MasterTest Web: without a class list, the Exams section says "(Load a class list to use either of the options below)". |

@@ -937,11 +937,13 @@ const PAGE_DESC = {
     single: "All quizzes in one file, quizzes.pdf (the same as Collate exams for this layout).",
     duplex: "All folded answer cards in one file, answer_cards.pdf." },
   "title-page": { booklet: "Each booklet starts with a title page: the quiz title and the student's name, number and seat.",
-    single: null, duplex: "Always on for folded booklets: page 1 is the title page." },
+    single: null, duplex: "Always on for folded booklets: page 1 is the title page.",
+    merged: "A title page before each quiz, with the quiz title and instructions (it is not scanned). Without it the instructions are printed above the questions on the first sheet." },
   "collate-title-pages": { booklet: "Title pages are printed separately, all in one file, title_pages.pdf, and the booklets start at question 1. Useful with variants: every student still gets a personal title page.",
-    single: null, duplex: null },
+    single: null, duplex: null, merged: "Not for merged sheets: use Title page." },
   "pad-title-page": { booklet: "A blank page after the title page, so the questions start on a new sheet when printed double-sided. Needs Title page or Collate title pages.",
-    single: null, duplex: "Leaves page 2 of the booklet blank, so the questions start on a right-hand page." },
+    single: null, duplex: "Leaves page 2 of the booklet blank, so the questions start on a right-hand page.",
+    merged: "A blank page after the title page, so the first sheet starts on a new sheet of paper when printed double-sided. Needs Title page." },
   "pad-exam": { booklet: "Blank pages after each booklet, so the next student's booklet starts on a new sheet when printed double-sided.",
     single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided (the same as Pad answer cards here).",
     duplex: false },
@@ -949,13 +951,14 @@ const PAGE_DESC = {
     single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided (the same as Pad exam here).",
     duplex: false },
 };
-const layoutKind = () => (layout.id === "tabloid" ? "duplex" : layout.id === "booklet" ? "booklet" : "single");
+const layoutKind = () => (layout.id === "tabloid" ? "duplex" : layout.id === "booklet" ? "booklet" : layout.id.startsWith("merged") ? "merged" : "single");
 
 function showPageOptions() {
   const kind = layoutKind();
   const titles = [...document.querySelectorAll("#page-opts input")].filter((b) => ["title-page", "collate-title-pages"].includes(b.dataset.po) && b.checked && !b.disabled).length;
   for (const box of document.querySelectorAll("#page-opts input")) {
-    const raw = PAGE_DESC[box.dataset.po][kind];
+    const desc = PAGE_DESC[box.dataset.po];
+    const raw = kind in desc ? desc[kind] : desc[kind === "merged" ? "single" : kind];
     const d = typeof raw === "string" ? tr(raw) : raw;
     let off = d === null || d === false;
     let text = d === null ? tr("Not for this layout: the questions and answers start on the first page.")
@@ -963,13 +966,14 @@ function showPageOptions() {
     if (kind === "duplex" && box.dataset.po === "collate-title-pages") text = tr("Not for folded booklets: the title page is always the booklet's first page.");
     if (box.dataset.po === "title-page" && kind === "duplex") { box.checked = true; off = true; }
     else if (box.dataset.po === "title-page" && box.disabled && !off) box.checked = false;
-    if (box.dataset.po === "pad-title-page" && kind === "booklet" && !titles) { off = true; }
+    if (box.dataset.po === "pad-title-page" && (kind === "booklet" || kind === "merged") && !titles) { off = true; }
+    if (kind === "merged" && box.dataset.po === "collate-title-pages") { off = true; box.checked = false; }
     box.disabled = off;
     box.closest("label").classList.toggle("off", off);
     box.closest("label").querySelector("[data-desc]").textContent = text;
   }
   $("pg-layout-note").textContent = tr("For the {layout} layout.", { layout: layoutName(layout) }) +
-    (kind === "single" ? tr(" The quiz and its answers are on the same pages, so the exam and answer-card options mean the same.") : "");
+    (kind === "single" || kind === "merged" ? tr(" The quiz and its answers are on the same pages, so the exam and answer-card options mean the same.") : "");
 }
 function pageArgs() {
   const on = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).map((b) => b.dataset.po);
