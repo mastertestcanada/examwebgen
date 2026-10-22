@@ -1,6 +1,6 @@
 # MasterTest Web
 
-Version 0.5.14 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
+Version 0.5.15 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
 built to run entirely in a web browser (MasterTest.ca). Teachers choose a Canvas
 quiz export or a Word document written for Akindi's importer (and a class list), set the options, and download a zip of exams,
 answer cards, the answer key and attendance sheet for marking with the
@@ -31,9 +31,10 @@ The first visit downloads about 21 MB, which the browser then caches.
 | Path | What it is |
 |---|---|
 | `index.html`, `i18n.js`, `wizard.js` | The page: a two-step wizard. |
-| `worker.js`, `mastertest-logo.png` | Runs the program for both pages; the logo. |
-| `app-<version>.zip` | MasterTest Builder itself, its answer-card instructions, images and fonts (DejaVu Sans, Open Sans, Source Code Pro, MasterTest Enclosed). |
-| `pyodide/` | Pyodide (Python for the browser) with lxml, Pillow, cryptography and fontTools. |
+| `worker.js`, `sw.js`, `mastertest-logo.png` | Runs the program for both pages; keeps Python and the libraries in the browser between visits; the logo. |
+| `app-<version>.zip` | MasterTest Builder itself, its answer-card instructions, images and fonts (DejaVu Sans, MasterTest Enclosed). |
+| `fonts/supplied/` | Open Sans and Source Code Pro, downloaded only when chosen. |
+| `pyodide/` | Pyodide (Python for the browser) with lxml, Pillow and fontTools (loaded only for an uploaded OpenType font). |
 | `wheels/` | reportlab, pypdf and segno from PyPI. |
 | `fonts/` | Atkinson Hyperlegible for the page, and MasterTest Enclosed for its examples of the option letters (SIL Open Font License). |
 | `fonts/cjk/` | Noto Sans CJK for Simplified and Traditional Chinese, Japanese and Korean (SIL Open Font License, `fonts/cjk/OFL.txt`), converted to TrueType; the page downloads one only when a quiz has text in those languages. |

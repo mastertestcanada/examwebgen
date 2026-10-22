@@ -535,6 +535,7 @@ const I18N = {
 "{n} point": "{n} point",
 "{n} points": "{n} points",
 "answer_key.csv:": "answer_key.csv :",
-"English": "English"
+"English": "English",
+"{name} will be loaded once the exam maker has loaded.": "{name} sera chargé une fois le générateur d'examens chargé."
 }
 };

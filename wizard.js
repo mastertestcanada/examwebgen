@@ -2,7 +2,10 @@
 // the question pool, paper size and layout, variants and blank cards; Create Exam Packet asks for an optional
 // answer-key password, runs MasterTest Builder in the worker (in this tab's memory) and step 2
 // hands over the zip and the exam configuration (an options file that the command line reads
-// too, and that "Load Previous Exam Config" reads back)..
+// too, and that "Load Previous Exam Config" reads back).
+//
+// The source is in parts, web/wizard/*.js, one per section of the page; tools/build_web.py joins
+// them in order into wizard.js (one script, so every function is defined wherever it is called).
 "use strict";
 
 const $ = (id) => document.getElementById(id);
@@ -22,7 +25,7 @@ let pending = null;             // settings from a loaded configuration still wa
 let configName = "";
 let lastArgs = null;            // the options of the last run, for the configuration download
 let configUrl = null;
-
+// MasterTest Web, layouts. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ layouts
 
 // small pictures of each layout: pages in outline, text as lines, answers as bubbles and cells
@@ -151,7 +154,7 @@ function updateNav() {
   $("next").disabled = t.scrollLeft + t.clientWidth >= t.scrollWidth - 2;
   $("prev").parentElement.hidden = t.scrollWidth <= t.clientWidth + 2;
 }
-
+// MasterTest Web, the files, the quiz in the export, and Chinese, Japanese and Korean text. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ files
 
 function filePicker(inputId, dropId, stateId, empty, onFile) {
@@ -365,7 +368,7 @@ const clearClass = filePicker("classlist", "class-drop", "class-state", () => tr
   if (f && ready) inspectClass();
 });
 $("class-clear").addEventListener("click", (e) => { e.preventDefault(); clearClass(); });
-
+// MasterTest Web, the class list. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ the class list
 
 // what the class list holds (read by the worker) and the page's class-list options
@@ -626,7 +629,7 @@ $("att-blank").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.p
 $("att-sort").addEventListener("change", () => { cls.sort = $("att-sort").value; $("att-dir").disabled = !cls.sort; update(); });
 $("att-dir").addEventListener("change", () => { cls.desc = $("att-dir").value === "desc"; update(); });
 for (const o of document.querySelectorAll('input[name="orient"]')) o.addEventListener("change", () => { if (o.checked) cls.orient = o.value; update(); });
-
+// MasterTest Web, print options: language and decimal mark, fonts, page and advanced options. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ print options
 
 const PO = {
@@ -1081,7 +1084,7 @@ function setPrintOptions(got) {
   if (any) $("print-details").open = true;
   return any;
 }
-
+// MasterTest Web, the options of a run, and the question pool. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ options
 
 for (const b of document.querySelectorAll("[data-step]")) {
@@ -1305,7 +1308,7 @@ function poolArgs() {
 }
 
 $("simulate").addEventListener("change", update);
-
+// MasterTest Web, exam configurations. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ exam configurations
 
 // an options file: one option per line, values quoted as the command line reads them
@@ -1369,7 +1372,21 @@ const LAYOUT_OF = (size, columns) => {
   return "booklet";
 };
 
+// the options the page has controls for (or that name files chosen on the page); a saved configuration's
+// other options are passed on as they are when generating
+const HANDLED_OPTIONS = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map",
+  "--class-list", "--output", "-o", "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field",
+  "--attendance-sort", "--attendance-orientation", "--margin", "--font", "--font-size", "--question-spacing", "--option-font",
+  "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--csv-separator", "--option-font-size",
+  "--option-columns", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--margin-left",
+  "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading", "--answer-card-instructions",
+  "--page-options", "--qr-quality", "--seed", "--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad",
+  "--show-points", "--no-quiz-instructions", "--option-dot", "--essay-space-all"]);
+let builderSpec = null;          // MasterTest Builder's version and options (web_runner.version())
+let configWaiting = null;        // a configuration chosen before MasterTest Builder had loaded
+
 function loadConfig(name, textIn) {
+  if (!builderSpec) { configWaiting = [name, textIn]; showConfigState(tr("{name} will be loaded once the exam maker has loaded.", { name }), false); return; }
   const tokens = [];
   for (const raw of textIn.replace(/^\uFEFF/, "").split(/\r?\n/)) {
     const line = raw.trim();
@@ -1378,21 +1395,22 @@ function loadConfig(name, textIn) {
   // --name=value -> --name value
   const t = tokens.flatMap((x) => (x.startsWith("--") && x.includes("=") ? [x.slice(0, x.indexOf("=")), x.slice(x.indexOf("=") + 1)] : [x]));
   const got = {}, rest = [], ignored = [];
-  const takes = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map", "--class-list", "--output", "-o",
-    "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field", "--attendance-sort", "--attendance-orientation",
-    "--margin", "--font", "--font-size", "--question-spacing", "--option-font", "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--csv-separator", "--option-font-size", "--option-columns",
-    "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text",
-    "--margin-left", "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading",
-    "--answer-card-instructions", "--page-options", "--qr-quality", "--seed"]);
+  // which options take a value comes from MasterTest Builder itself (builderSpec, when it has loaded)
+  const flags = new Set(builderSpec.flags), takes = new Set(builderSpec.takes);
   for (let i = 0; i < t.length; i++) {
     const o = t[i];
-    if (takes.has(o)) { got[o] = t[i + 1] !== undefined ? t[++i] : ""; continue; }
-    if (["--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad", "--show-points", "--no-quiz-instructions", "--option-dot", "--essay-space-all"].includes(o)) { got[o] = true; continue; }
     if (o === "--no-option-dot") continue;   // the default
     if (o.startsWith("@")) { ignored.push(o); continue; }
     if (!o.startsWith("-")) { if (!rest.length) { ignored.push(o); continue; } rest.push(o); continue; }  // a stray value: the export
-    rest.push(o);
-    while (i + 1 < t.length && !t[i + 1].startsWith("-")) rest.push(t[++i]);
+    if (flags.has(o)) {
+      if (HANDLED_OPTIONS.has(o)) got[o] = true; else rest.push(o);
+    } else if (takes.has(o)) {
+      const value = t[i + 1] !== undefined ? t[++i] : "";
+      if (HANDLED_OPTIONS.has(o)) got[o] = value; else rest.push(o, value);
+    } else {   // not an option of this version: passed on, with what follows it, for the program to explain
+      rest.push(o);
+      while (i + 1 < t.length && !t[i + 1].startsWith("-")) rest.push(t[++i]);
+    }
   }
   for (const o of ["--class-list", "--output", "-o"]) if (o in got) ignored.push(o);
   // apply what the page has controls for
@@ -1549,7 +1567,7 @@ $("config-forget").addEventListener("click", () => {
   $("config-state").hidden = true;
   update();
 });
-
+// MasterTest Web, the answer-key password, and the run. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ the answer-key password
 
 const COMMON = ["password", "passw0rd", "qwerty", "letmein", "welcome", "admin", "iloveyou", "monkey", "dragon", "sunshine",
@@ -1701,12 +1719,14 @@ worker.onmessage = ({ data }) => {
     engineSeconds = data.seconds;
     $("engine-state").textContent = tr("Ready");
     $("engine-detail").textContent = tr("· loaded in {s} s", { s: data.seconds.toFixed(0) });
+    builderSpec = data.spec;
     $("version-line").textContent = `MasterTest Web ${data.spec.version}`;
     $("version-top").textContent = data.spec.version;
     cjkFonts = data.cjk || {};
     showCjk();
     if (exportFile && quiz.state === "reading") { showQuiz(); inspectExport(); }
     if (classFile && cls.state === "reading") { showClass(); inspectClass(); }
+    if (configWaiting) { const [name, text] = configWaiting; configWaiting = null; loadConfig(name, text); }
     update();
   } else if (data.type === "error") {
     $("engine-state").textContent = tr("Could not start");
@@ -1731,7 +1751,7 @@ fetch("build.json", { cache: "no-cache" }).then((r) => r.json()).then((b) => {
   $("version-top").textContent = b.version;
   if ($("version-line").textContent === "MasterTest Web") $("version-line").textContent = `MasterTest Web ${b.version}`;
 }).catch(() => {});
-
+// MasterTest Web, the page's language. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ the page's language
 
 let engineSeconds = null;
