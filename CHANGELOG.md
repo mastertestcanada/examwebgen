@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.18  | 2026-10-21 | One-column merged sheets: a matching item that wraps onto more than one line has its dotted leader start at the text's right-hand margin, so the dots no longer run over the item's longer lines underneath; a one-line item's leader still starts where its text ends. |
 | 0.5.17  | 2026-10-21 | MasterTest Web: clearer explanation beside Essay space (the space when the Canvas question title gives none, e.g. "(1/2 page)"; For every essay applies it to all essays). |
 | 0.5.16  | 2026-10-21 | tools/marker_fixtures.py writes the fixtures for MasterTest Marker's new unit tests: for five layouts, the answer key (plain and password protected), every card's QR code and where each bubble, box and matching cell is printed, for made-up students. |
 | 0.5.15  | 2026-10-21 | Code reorganised: cli.py split into options.py, classlist.py, selection.py and assembly.py, and the build itself into named stages (the output is byte-for-byte the same); MasterTest Web's wizard.js is now web/wizard/*.js, one part per section of the page, joined when the web version is built. MasterTest Web: a saved exam configuration knows which options take a value from MasterTest Builder itself, so options added later are read correctly; a configuration chosen before the page has finished loading is loaded once it has. Unused code removed. |
