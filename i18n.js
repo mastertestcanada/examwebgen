@@ -324,7 +324,6 @@ const I18N = {
 "3/4 page": "3/4 de page",
 "1 page": "1 page",
 "For every essay": "Pour chaque développement",
-"the space for an essay's answer, at the end of the answer card, when its name in Canvas does not give one such as “(1/2 page)” (default 1/4 page). Tick For every essay to use it whatever the names say.": "l'espace de la réponse à une question à développement, à la fin de la carte-réponse, quand son nom dans Canvas n'en donne pas, comme « (1/2 page) » (par défaut 1/4 de page). Cochez Pour chaque développement pour l'utiliser quoi que disent les noms.",
 "matching": "association",
 "Each exam gets {per} of them: the quiz's item banks pick some of their questions (“pick N”). Alter the question pool to change this.": "Chaque examen en reçoit {per} : les banques d'items du questionnaire choisissent certaines de leurs questions (« choisir N »). Modifiez la banque de questions pour changer cela.",
 "{n} question was left out because it cannot be printed: {list}": "{n} question a été omise parce qu'elle ne peut pas être imprimée : {list}",
@@ -536,6 +535,7 @@ const I18N = {
 "{n} points": "{n} points",
 "answer_key.csv:": "answer_key.csv :",
 "English": "English",
-"{name} will be loaded once the exam maker has loaded.": "{name} sera chargé une fois le générateur d'examens chargé."
+"{name} will be loaded once the exam maker has loaded.": "{name} sera chargé une fois le générateur d'examens chargé.",
+"This is how much space to allocate on the answer card for an essay's answer when it isn't specified. e.g. Putting “(1/2 page)” in the Canvas question title reserves a half page on the answer card. Tick “For every essay” if you want every essay question to be this long.": "L'espace à réserver sur la carte-réponse pour la réponse d'un développement quand il n'est pas précisé. Par exemple, « (1/2 page) » dans le titre de la question Canvas réserve une demi-page sur la carte-réponse. Cochez « Pour chaque développement » pour donner cette longueur à toutes les questions à développement."
 }
 };
