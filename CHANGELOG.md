@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.10  | 2026-10-21 | The dotted leaders of matching items are drawn as one path each, not a circle per dot, so merged quizzes stay small (the browser test's output had grown from 144 KB to 371 KB). |
 | 0.5.9   | 2026-10-21 | One-column merged sheets: each matching item has a dotted leader from its text across to its digit cells, so it is clear which cells are whose. The dots stop short of the cells, outside what MasterTest Marker reads. The test pack is rebuilt. |
 | 0.5.8   | 2026-10-21 | MasterTest Web: the exam name looks editable: a dashed outline and a pencil button (which puts the cursor in the name), and the line under it says to click the name to change it. |
 | 0.5.7   | 2026-10-21 | The exam's name can be changed: `--title "Unit 3 Test"` prints it on the exams, answer cards and answer key (and names the output folder) instead of the quiz's name in the Canvas export or Word document. Only the printed name changes; the quiz hash stays, so the cards still match the answer key. MasterTest Web: the name above the quiz summary is editable, with "Use the quiz's name" to go back; it applies to that run and is not saved in configurations, which are used with other quizzes. |
