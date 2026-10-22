@@ -858,5 +858,9 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 </main>
 <script src="i18n.js"></script>
 <script src="wizard.js"></script>
+<script>
+  // keeps the large files (Python, libraries, fonts) in the browser for the next visit (sw.js)
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
 </body>
 </html>

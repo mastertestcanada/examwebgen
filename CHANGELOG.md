@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.11  | 2026-10-21 | MasterTest Web starts faster. The answer-key password no longer needs the cryptography library (about 2.3 MB with its helpers): AES-256-GCM is plain Python (`mtbuilder/aesgcm.py`, checked against cryptography in the smoke test) and the key is derived with PBKDF2 from Python's hashlib on the desktop, with the browser's own crypto in MasterTest Web. fontTools (1.1 MB) loads only when an uploaded OpenType font must be converted; fonts are described by reading their tables directly. A service worker keeps Python, the libraries, the app and the fonts in the browser, so later visits start without downloading them. `cryptography` is no longer in requirements.txt. |
 | 0.5.10  | 2026-10-21 | The dotted leaders of matching items are drawn as one path each, not a circle per dot, so merged quizzes stay small (the browser test's output had grown from 144 KB to 371 KB). |
 | 0.5.9   | 2026-10-21 | One-column merged sheets: each matching item has a dotted leader from its text across to its digit cells, so it is clear which cells are whose. The dots stop short of the cells, outside what MasterTest Marker reads. The test pack is rebuilt. |
 | 0.5.8   | 2026-10-21 | MasterTest Web: the exam name looks editable: a dashed outline and a pencil button (which puts the cursor in the name), and the line under it says to click the name to change it. |

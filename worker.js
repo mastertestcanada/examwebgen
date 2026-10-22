@@ -48,9 +48,22 @@ async function cjkFont(region) {
   return data;
 }
 
+// PBKDF2-HMAC-SHA256 as qr_payload._aes_key: 600,000 iterations, the header as salt, 32 bytes (hex)
+async function deriveKey(password, headerHex) {
+  const salt = new Uint8Array(headerHex.match(/../g).map((h) => parseInt(h, 16)));
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 600000 }, base, 256);
+  return [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function run({ files, argv, password, cjk }) {
   const t0 = performance.now();
   const font = cjk ? await cjkFont(cjk) : null;
+  // fontTools only for an uploaded OpenType (PostScript outlines) font or font collection, which are converted
+  if (build.lazy_packages && files.some((f) => /\.(otf|ttc)$/i.test(f.name))) {
+    post("progress", { text: "Loading the font converter…" });
+    await py.loadPackage(build.lazy_packages, { messageCallback: () => {} });
+  }
   py.setStdout({ batched: (text) => post("log", { text, stream: "stdout" }) });
   py.setStderr({ batched: (text) => post("log", { text, stream: "stderr" }) });
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
@@ -72,7 +85,32 @@ async function run({ files, argv, password, cjk }) {
   }
   py.globals.set("web_argv", py.toPy(argv));
   py.globals.set("web_password", password || "");
-  const rc = py.runPython("web_runner.run(web_argv, web_password)");
+  // with a password the first attempt stops early to have the key derived (below): its messages are
+  // held back, so that they are not shown twice
+  const held = [];
+  if (password) {
+    py.setStdout({ batched: (text) => held.push({ text, stream: "stdout" }) });
+    py.setStderr({ batched: (text) => held.push({ text, stream: "stderr" }) });
+  }
+  let rc = py.runPython("web_runner.run(web_argv, web_password)");
+  py.setStdout({ batched: (text) => post("log", { text, stream: "stdout" }) });
+  py.setStderr({ batched: (text) => post("log", { text, stream: "stderr" }) });
+  if (typeof rc !== "string") for (const line of held) post("log", line);
+  if (typeof rc === "string") {
+    // --password: the answer key's AES key, derived here with the browser's PBKDF2 (Python in the
+    // browser has none), then the run again with it
+    post("progress", { text: "Protecting the answer key…" });
+    const key = await deriveKey(password, rc);
+    py.runPython("web_runner.reset()");
+    for (const f of files) {
+      const path = "/work/in/" + f.name;
+      if (f.unzip) { py.FS.mkdirTree(path); py.unpackArchive(f.data, "zip", { extractDir: path }); }
+      else { py.FS.mkdirTree(path.slice(0, path.lastIndexOf("/"))); py.FS.writeFile(path, new Uint8Array(f.data)); }
+    }
+    if (font) { py.FS.mkdirTree("/work/in/fonts/cjk"); py.FS.writeFile(`/work/in/fonts/cjk/NotoSansCJK-${cjk}.ttf`, font); }
+    py.globals.set("web_derived", py.toPy({ [rc]: key }));
+    rc = py.runPython("web_runner.run(web_argv, web_password, web_derived)");
+  }
   const seconds = (performance.now() - t0) / 1000;
   if (rc !== 0) {
     py.runPython("web_runner.reset()");
