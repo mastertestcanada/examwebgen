@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.19  | 2026-10-21 | Card and merged-sheet QR codes say how many cards (or sheets) the student's exam has (flag bit 5, high 4 bits of the index byte), so MasterTest Marker can ask for the rest. Earlier prints still read; they just don't say. |
 | 0.5.18  | 2026-10-21 | One-column merged sheets: a matching item that wraps onto more than one line has its dotted leader start at the text's right-hand margin, so the dots no longer run over the item's longer lines underneath; a one-line item's leader still starts where its text ends. |
 | 0.5.17  | 2026-10-21 | MasterTest Web: clearer explanation beside Essay space (the space when the Canvas question title gives none, e.g. "(1/2 page)"; For every essay applies it to all essays). |
 | 0.5.16  | 2026-10-21 | tools/marker_fixtures.py writes the fixtures for MasterTest Marker's new unit tests: for five layouts, the answer key (plain and password protected), every card's QR code and where each bubble, box and matching cell is printed, for made-up students. |
