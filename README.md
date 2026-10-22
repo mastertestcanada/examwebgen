@@ -1,6 +1,6 @@
 # MasterTest Web
 
-Version 0.5.13 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
+Version 0.5.14 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
 built to run entirely in a web browser (MasterTest.ca). Teachers choose a Canvas
 quiz export or a Word document written for Akindi's importer (and a class list), set the options, and download a zip of exams,
 answer cards, the answer key and attendance sheet for marking with the
