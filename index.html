@@ -149,12 +149,38 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .sum-read .ans { font-weight: 700; }
 .sum-read .k, .sum-read .pts { color: var(--muted); }
 
-/* layout carousel */
-.carousel { position: relative; }
-.track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(12.5rem, 1fr); gap: .9rem;
-  overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 .35rem; padding: .35rem .35rem 1rem;
-  scrollbar-width: thin; }
-.layout { scroll-snap-align: start; display: flex; flex-direction: column; gap: .55rem; text-align: left;
+/* the four sections of step 1, numbered */
+.num-h { display: flex; align-items: center; gap: .6rem; font-size: 1.3rem; margin-bottom: .35rem; }
+.num-h .num { flex: none; display: inline-grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-size: 1rem; }
+section.block > .hint { margin-left: 2.4rem; }
+section.block > .files { max-width: 34rem; }
+.who { margin-top: 1.4rem; display: flex; flex-direction: column; gap: 1.2rem; }
+.who #exams-hint { margin: 0 0 -.8rem; }
+.who fieldset { border: 0; padding: 0; margin: 0; }
+.who legend.sub-h { padding: 0; margin: 0 0 .6rem; }
+.blank-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.5rem; }
+.blank-row > div { flex: 1 1 22rem; }
+.blank-row .hint { margin: .2rem 0 0; }
+.seg-row { border: 0; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.seg-row legend { float: left; font-weight: 700; padding: 0; margin-right: .4rem; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1.5px solid var(--ink); }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; padding: .45rem 1rem; }
+.seg input:checked + span { background: var(--ink); color: var(--paper); font-weight: 700; }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.layouts { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .9rem; padding: .2rem 0 .4rem; }
+.layout-opts { margin-top: 1rem; border: 1.5px solid var(--rule); padding: .9rem 1rem 1rem; }
+.layout-opts .sub-h { margin: 0 0 .6rem; }
+.changed { margin-left: auto; font-size: .8rem; font-weight: 700; color: #7a3e00; background: #fff1de; border: 1px solid #e9b26a;
+  padding: .05rem .55rem; border-radius: 999px; white-space: nowrap; }
+.tune + .tune { margin-top: .6rem; }
+.who .sub-h, .layout-opts .sub-h, .blank-row .sub-h { border-top: 0; padding-top: 0; margin-top: 0; font-weight: 700; }
+.recap { margin-top: 1.4rem; padding: 1rem 1.2rem; background: var(--ink); color: var(--paper); }
+.recap p { margin: .15rem 0; opacity: .85; }
+.recap .recap-title { font-weight: 700; font-size: 1.1rem; opacity: 1; }
+.layout { display: flex; flex-direction: column; gap: .55rem; text-align: left;
   font: inherit; color: inherit; background: var(--paper); border: 1.5px solid var(--rule); padding: .9rem .95rem 1rem;
   cursor: pointer; position: relative; min-width: 0; }
 .layout:hover { border-color: var(--muted); }
@@ -169,10 +195,6 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .layout .why-not { color: var(--wrong); font-size: .85rem; line-height: 1.35; }
 .layout[aria-disabled="true"] { cursor: not-allowed; background: var(--cell-soft); }
 .layout[aria-disabled="true"] .pic, .layout[aria-disabled="true"] .name, .layout[aria-disabled="true"] .desc { opacity: .45; }
-.nav { display: flex; gap: .5rem; justify-content: flex-end; margin-top: -.25rem; }
-.nav button { font: inherit; width: 2.4rem; height: 2.4rem; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink);
-  cursor: pointer; display: grid; place-items: center; }
-.nav button:disabled { border-color: var(--rule); color: var(--rule); cursor: default; }
 .nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* bubbles */
@@ -405,6 +427,12 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
   .big-bubble.working { animation: none; border-right-color: var(--accent); }
   .track { scroll-behavior: auto; }
 }
+@media (max-width: 40rem) {
+  .layouts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .layout { padding: .7rem; }
+  .layout .pic { height: 4rem; }
+  .layout .desc { font-size: .8rem; }
+}
 </style>
 </head>
 <body>
@@ -435,7 +463,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       <label class="small-button" id="config-load">
         <input type="file" id="config-file" accept=".txt,text/plain">
         <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h4l1.5 1.5h5.5v7h-11z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
-        Load Previous Exam Config
+        Load saved settings
       </label>
     </div>
     <p class="lede">Everything happens in this browser tab. Your quiz and class list are never uploaded.</p>
@@ -444,22 +472,15 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       <button type="button" class="link" id="config-forget">Forget it</button>
     </div>
 
-    <section class="block" aria-labelledby="files-h">
-      <h2 id="files-h">Files</h2>
-      <p class="hint">Export the quiz from Canvas as a QTI .zip file, or choose a Word document (.docx) written for Akindi's importer. A class list is optional: it gives each student a card with their name and number.</p>
+    <section class="block" aria-labelledby="quiz-h">
+      <h2 id="quiz-h" class="num-h"><span class="num" aria-hidden="true">1</span>Quiz</h2>
+      <p class="hint">A Canvas QTI export (.zip), or a Word document (.docx) written for Akindi's importer.</p>
       <div class="files">
         <label class="drop" id="export-drop">
           <input type="file" id="export" accept=".zip,application/zip,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 2.8h8l4.2 4.2v14.2H6z"/><path d="M14 2.8V7h4.2"/><path d="M10 7h1.5M10 9.5h1.5M10 12h1.5"/><rect x="9.4" y="14" width="2.7" height="3.4" rx=".4"/></svg>
           <span class="title">Quiz export <span class="tag">required</span></span>
           <span class="state" id="export-state">Choose or drop the .zip or .docx file</span>
-        </label>
-        <label class="drop" id="class-drop">
-          <input type="file" id="classlist" accept=".csv,text/csv">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.2 19.5c.6-3.3 3-5.1 5.8-5.1s5.2 1.8 5.8 5.1"/><path d="M15.5 6.2h5.3M15.5 9.4h5.3M17.5 12.6h3.3"/></svg>
-          <span class="title">Class list <span class="tag">optional, .csv</span></span>
-          <span class="state" id="class-state">Choose or drop the class list</span>
-          <button type="button" class="clear" id="class-clear" hidden>Remove class list</button>
         </label>
       </div>
       <div class="quiz" id="quiz" aria-live="polite" hidden>
@@ -499,7 +520,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <p class="hint pool-hint" id="cjk-hint"></p>
           </fieldset>
         <details class="pool" id="pool" hidden>
-          <summary>Alter Question Pool</summary>
+          <summary>Choose questions</summary>
           <div class="pool-body">
             <div class="pool-row" id="limit-row">
               <label for="limit" id="limit-label">Limit test questions to:</label>
@@ -513,13 +534,13 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <p class="hint pool-hint" id="limit-hint">Each exam gets this many questions, drawn at random from the whole quiz.</p>
             <div class="ignore-row" id="ignore-row">
               <label class="check"><input type="checkbox" id="ignore-banks">
-                <span><span class="label">Ignore Item Banks <span class="tag">[“pick N” rules]</span></span>
+                <span><span class="label">Ignore item banks <span class="tag">[“pick N” rules]</span></span>
                 <span class="sub" id="ignore-sub"></span></span></label>
             </div>
             <div class="banks" id="banks">
               <div class="banks-side">
                 <label class="check"><input type="checkbox" id="simulate">
-                  <span><span class="label">Simulate Question Banks <span class="tag">[Classic Quizzes]</span></span>
+                  <span><span class="label">Simulate question banks <span class="tag">[Classic Quizzes]</span></span>
                   <span class="sub" id="simulate-sub">Questions with the same name form a bank. Choose how many each exam draws from each bank.</span></span></label>
                 <p class="banks-total" id="banks-total" hidden></p>
               </div>
@@ -528,6 +549,20 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
           </div>
         </details>
         </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="students-h">
+      <h2 id="students-h" class="num-h"><span class="num" aria-hidden="true">2</span>Students</h2>
+      <p class="hint">Who gets an exam. A class list is optional: it puts each student's name and number on their card.</p>
+      <div class="files">
+        <label class="drop" id="class-drop">
+          <input type="file" id="classlist" accept=".csv,text/csv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.2 19.5c.6-3.3 3-5.1 5.8-5.1s5.2 1.8 5.8 5.1"/><path d="M15.5 6.2h5.3M15.5 9.4h5.3M17.5 12.6h3.3"/></svg>
+          <span class="title">Class list <span class="tag">optional, .csv</span></span>
+          <span class="state" id="class-state">Choose or drop the class list</span>
+          <button type="button" class="clear" id="class-clear" hidden>Remove class list</button>
+        </label>
       </div>
       <div class="quiz" id="classinfo" aria-live="polite" hidden>
         <p class="quiz-status" id="class-status"></p>
@@ -547,7 +582,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <span><span class="label">Randomize seats</span>
             <span class="sub" id="randomize-sub">Each student gets a random seat, printed on their card and the attendance sheet.</span></span></label>
           <details class="pool" id="seat-details">
-            <summary>Specify Seat Labels <span class="summary-note">Use this when you want seat numbers that aren't sequential e.g. (2, 4, 6), or seats with alphanumeric names like “A4, B6” or “Row H, Seat 5”. Without labels seats are numbered from 1 to <span id="seat-n">the number of students</span>. Labels are only used when Randomize seats is ticked; adding them ticks it.</span></summary>
+            <summary>Seat labels <span class="summary-note">Seats that aren't numbered 1 to <span id="seat-n">the number of students</span>, such as 2, 4, 6 or “A4, B6” or “Row H, Seat 5”. Used when Randomize seats is ticked; adding labels ticks it.</span></summary>
             <div class="pool-body">
               <label for="seat-labels" class="field-label">Seat labels</label>
               <textarea id="seat-labels" rows="6" spellcheck="false"></textarea>
@@ -560,7 +595,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             </div>
           </details>
           <details class="pool" id="class-details">
-            <summary>Class List Options <span class="summary-note">Change which field is the Student Number, export fields from the class list into the QR code (such as seat number).</span></summary>
+            <summary>Class list options <span class="summary-note">Change which field is the Student Number, export fields from the class list into the QR code (such as seat number).</span></summary>
             <div class="pool-body">
               <div class="pool-row">
                 <label for="id-col">Student ID column:</label>
@@ -577,7 +612,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             </div>
           </details>
           <details class="pool" id="att-details">
-            <summary>Attendance Sheet Options: <span class="summary-note">An attendance sheet is generated if you have loaded a class list.</span></summary>
+            <summary>Attendance sheet <span class="summary-note">Printed with every class list: its columns, order and orientation.</span></summary>
             <div class="pool-body">
               <p class="field-label">Columns on the sheet, left to right</p>
               <ul class="chips" id="att-cols" aria-label="Attendance sheet columns"></ul>
@@ -602,37 +637,69 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         </div>
         </div>
       </div>
-    </section>
-
-    <section class="block paper" aria-labelledby="paper-h">
-      <fieldset class="paper-row paper-pair">
-        <legend id="paper-h">Paper Size:</legend>
-        <label class="bubble inline"><input type="radio" name="paper" value="traditional" checked><span class="label">Traditional</span><span class="sub">Letter and tabloid</span></label>
-        <label class="bubble inline"><input type="radio" name="paper" value="iso"><span class="label">ISO</span><span class="sub">A4 and A3</span></label>
+      <div class="who">
+        <p class="hint" id="exams-hint">(Load a class list to use either of the options below)</p>
+      <fieldset id="mode" disabled>
+        <legend class="sub-h">Exams</legend>
+        <div class="choices">
+          <label class="bubble"><input type="radio" name="mode" value="unique" checked>
+            <span><span class="label">A unique exam for each student</span><span class="sub">Every student gets their own order of questions and answers.</span></span></label>
+          <div>
+            <label class="bubble"><input type="radio" name="mode" value="variants">
+              <span><span class="label">Variants</span><span class="sub">A few versions of the exam, handed out among the students.</span></span></label>
+            <div class="variants-count">
+              <span id="variants-label">Number of variants</span>
+              <span class="stepper">
+                <button type="button" data-step="variants" data-by="-1" aria-label="Fewer variants" disabled>−</button>
+                <input type="number" id="variants" min="1" max="99" value="2" inputmode="numeric" aria-labelledby="variants-label" disabled>
+                <button type="button" data-step="variants" data-by="1" aria-label="More variants" disabled>+</button>
+              </span>
+            </div>
+          </div>
+        </div>
       </fieldset>
-      <fieldset class="paper-row paper-pair">
-        <legend id="plang-h">Printed in:</legend>
-        <label class="bubble inline"><input type="radio" name="plang" value="en" checked><span class="label">English</span><span class="sub">instructions, headings and labels</span></label>
-        <label class="bubble inline"><input type="radio" name="plang" value="fr"><span class="label" lang="fr">Français</span><span class="sub" lang="fr">consignes, titres et étiquettes</span></label>
-        <span class="pool-of plang-note">The quiz itself is printed as written.</span>
-      </fieldset>
-    </section>
-
-    <section class="block" aria-labelledby="layout-h">
-      <h2 id="layout-h">Layout</h2>
-      <p class="hint">How the questions and answers appear on paper. Every layout can be marked with the MasterTest Marker app.</p>
-      <div class="carousel">
-        <div class="track" id="layouts" role="radiogroup" aria-labelledby="layout-h"></div>
-        <div class="nav">
-          <button type="button" id="prev" aria-label="Previous layouts"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
-          <button type="button" id="next" aria-label="More layouts"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+        <div class="blank-row">
+          <div><h3 class="sub-h" id="blanks-h">Blank cards</h3>
+          <p class="hint">For students not on the class list, or spares: students write their name by hand and bubble in or write their student number.</p></div>
+          <span class="stepper">
+            <button type="button" data-step="blanks" data-by="-1" aria-label="Fewer blank cards">−</button>
+            <input type="number" id="blanks" min="0" max="999" value="0" inputmode="numeric" aria-labelledby="blanks-h">
+            <button type="button" data-step="blanks" data-by="1" aria-label="More blank cards">+</button>
+          </span>
         </div>
       </div>
     </section>
 
-    <section class="block" aria-label="Print options">
-      <details class="pool print-opts" id="print-details">
-        <summary>Print Options <span class="summary-note">Change margins, fonts, spacing and instructional text.</span></summary>
+    <section class="block" aria-labelledby="layout-h">
+      <h2 id="layout-h" class="num-h"><span class="num" aria-hidden="true">3</span>Layout and paper</h2>
+      <p class="hint">How the questions and answers appear on paper. Every layout can be marked with the MasterTest Marker app.</p>
+      <fieldset class="seg-row">
+        <legend id="paper-h">Paper</legend>
+        <span class="seg">
+          <label><input type="radio" name="paper" value="traditional" checked><span>Letter and tabloid</span></label>
+          <label><input type="radio" name="paper" value="iso"><span>A4 and A3</span></label>
+        </span>
+      </fieldset>
+      <div class="layouts" id="layouts" role="radiogroup" aria-labelledby="layout-h"></div>
+      <div class="layout-opts" role="group" aria-labelledby="pg-layout-note">
+        <p class="sub-h" id="pg-layout-note"></p>
+        <div class="choices tight po-checks" id="page-opts">
+            <label class="check"><input type="checkbox" data-po="collate-exams"><span><span class="label">Collate exams</span><span class="sub" data-desc="collate-exams"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="collate-answer-cards"><span><span class="label">Collate answer cards</span><span class="sub" data-desc="collate-answer-cards"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="title-page"><span><span class="label">Title page</span><span class="sub" data-desc="title-page"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="collate-title-pages"><span><span class="label">Collate title pages</span><span class="sub" data-desc="collate-title-pages"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="pad-title-page"><span><span class="label">Pad title page <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-title-page"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="pad-exam"><span><span class="label">Pad exam <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-exam"></span></span></label>
+            <label class="check"><input type="checkbox" data-po="pad-answer-cards"><span><span class="label">Pad answer cards <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-answer-cards"></span></span></label>
+          </div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="tune-h">
+      <h2 id="tune-h" class="num-h"><span class="num" aria-hidden="true">4</span>Fine-tuning</h2>
+      <p class="hint">Optional. Every setting starts at a sensible default; a section you have changed says so.</p>
+      <details class="pool tune" id="print-details">
+        <summary>Text and fonts <span class="summary-note">Margins, font, size, spacing, option letters, instruction lines</span><span class="changed" data-changed="text" hidden></span></summary>
         <div class="pool-body">
           <div class="form-grid">
             <span class="grid-label" id="po-margin-mode-label">Margins:</span>
@@ -660,7 +727,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <span><select id="po-option-font" class="select font-pick" data-default="same"></select> <input type="file" id="po-option-font-file" accept=".ttf,.otf,.ttc" multiple hidden> <span class="pool-of" id="po-option-font-state">for the option letters A, B, C…</span></span>
             <span class="grid-label">Enclosed letters:</span>
             <span class="enclosed-row">
-              <label class="check inline"><input type="checkbox" id="po-enclosed" checked><span class="label">Use Enclosed Characters</span></label>
+              <label class="check inline"><input type="checkbox" id="po-enclosed" checked><span class="label">Use enclosed characters</span></label>
               <span class="inline-radios" id="po-enclosed-style" role="radiogroup" aria-label="Enclosed letter style">
                 <label class="bubble inline"><input type="radio" name="po-enclosed-style" value="circled" checked><span class="label enc">Ⓐ Ⓑ Ⓒ Ⓓ</span><span class="sub">circled (default)</span></label>
                 <label class="bubble inline"><input type="radio" name="po-enclosed-style" value="filled"><span class="label enc">🅐 🅑 🅒 🅓</span><span class="sub">filled</span></label>
@@ -669,29 +736,32 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             </span>
             <label for="po-option-size">Option font size:</label>
             <span><input type="number" id="po-option-size" class="text short" min="4" max="72" step="0.5" inputmode="decimal" placeholder="same"> <span class="pool-of">points (default: the font size)</span></span>
-            <span class="grid-label" id="po-marker-label">Option Marker:</span>
+            <span class="grid-label" id="po-marker-label">Option marker:</span>
             <span role="radiogroup" aria-labelledby="po-marker-label" class="inline-radios">
               <label class="bubble inline"><input type="radio" name="po-marker" value="nodot" checked><span class="label">Off</span><span class="sub">letter only (default)</span></label>
               <label class="bubble inline"><input type="radio" name="po-marker" value="dot"><span class="label">A.</span><span class="sub">letter and period</span></label>
             </span>
-            <span class="grid-label" id="po-decimal-label">Decimal mark:</span>
-            <span class="enclosed-row">
-              <span role="radiogroup" aria-labelledby="po-decimal-label" class="inline-radios">
-                <label class="bubble inline"><input type="radio" name="po-decimal" value="point" checked><span class="label">0.5</span><span class="sub" id="po-decimal-point-sub">point</span></label>
-                <label class="bubble inline"><input type="radio" name="po-decimal" value="comma"><span class="label">0,5</span><span class="sub" id="po-decimal-comma-sub">comma</span></label>
-              </span>
-              <span class="pool-of">for calculated-question values and the instructions for number boxes; the default follows the print language. MasterTest Marker reads either.</span>
-            </span>
             <label for="po-option-columns">Option columns:</label>
             <span><input type="number" id="po-option-columns" class="text short" min="1" max="6" step="1" value="1" inputmode="numeric"> <span class="pool-of">lay each question's options out in this many columns (default 1)</span></span>
-            <label for="po-essay">Essay space:</label>
-            <span class="essay-cell"><span class="essay-row"><select id="po-essay" class="select">
-                <option value="1/4">1/4 page</option><option value="1/2">1/2 page</option><option value="3/4">3/4 page</option><option value="1">1 page</option>
-              </select>
-              <label class="check inline"><input type="checkbox" id="po-essay-all"><span class="label">For every essay</span></label></span>
-              <span class="pool-of">This is how much space to allocate on the answer card for an essay's answer when it isn't specified. e.g. Putting “(1/2 page)” in the Canvas question title reserves a half page on the answer card. Tick “For every essay” if you want every essay question to be this long.</span></span>
           </div>
-          <h3 class="sub-h">Answer cards</h3>
+          <div class="choices tight po-checks">
+            <label class="check"><input type="checkbox" id="po-points"><span><span class="label">Show points</span><span class="sub">Print each question's point value.</span></span></label>
+            <label class="check"><input type="checkbox" id="po-noinstr"><span><span class="label">Suppress quiz instructions</span><span class="sub">Leave out the quiz's instructions from Canvas.</span></span></label>
+          </div>
+          <div class="form-grid texts">
+            <label for="po-calc">Calculated question instructions:</label>
+            <input type="text" id="po-calc" class="text wide">
+            <label for="po-fill">Fill-in-the-blank instructions:</label>
+            <input type="text" id="po-fill" class="text wide">
+            <label for="po-blank">Replace ______ in fill-in-the-blank questions with:</label>
+            <input type="text" id="po-blank" class="text wide" placeholder="__________ (default)">
+          </div>
+          <p class="hint pool-hint">The instructions are printed under every question of that kind. Leave a box empty for the standard text (shown in grey); type <code>none</code> to print nothing.</p>
+        </div>
+      </details>
+      <details class="pool tune" id="answer-details">
+        <summary>Answer area <span class="summary-note">Answer width, shading, essay space, answer card instructions, bubbles, rules between questions</span><span class="changed" data-changed="answer" hidden></span></summary>
+        <div class="pool-body">
           <div class="form-grid">
             <label for="po-width">Answer field width:</label>
             <span><input type="text" id="po-width" class="text short" spellcheck="false"> <span class="pool-of" id="po-width-hint"></span></span>
@@ -709,48 +779,52 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
                 <span class="pool-of" id="po-aci-state">An .html file (the same tags as question text); choose its images along with it.</span>
               </span>
             </span>
+            <label for="po-essay">Essay space:</label>
+            <span class="essay-cell"><span class="essay-row"><select id="po-essay" class="select">
+                <option value="1/4">1/4 page</option><option value="1/2">1/2 page</option><option value="3/4">3/4 page</option><option value="1">1 page</option>
+              </select>
+              <label class="check inline"><input type="checkbox" id="po-essay-all"><span class="label">For every essay</span></label></span>
+              <span class="pool-of">This is how much space to allocate on the answer card for an essay's answer when it isn't specified. e.g. Putting “(1/2 page)” in the Canvas question title reserves a half page on the answer card. Tick “For every essay” if you want every essay question to be this long.</span></span>
           </div>
-          <h3 class="sub-h">Questions</h3>
           <div class="choices tight po-checks">
-            <label class="check"><input type="checkbox" id="po-pad" checked><span><span class="label">Pad Options</span><span class="sub">Every multiple-choice question gets as many bubbles as the question with the most options (the default). Untick to print one bubble per option.</span></span></label>
-            <label class="check"><input type="checkbox" id="po-rules"><span><span class="label">Rule Between Questions</span><span class="sub">A thin grey line between one question and the next, so each question is easy to follow across to its answer. On by default for Merged One Column.</span></span></label>
-            <label class="check"><input type="checkbox" id="po-points"><span><span class="label">Show Points</span><span class="sub">Print each question's point value.</span></span></label>
-            <label class="check"><input type="checkbox" id="po-noinstr"><span><span class="label">Suppress Quiz Instructions</span><span class="sub">Leave out the quiz's instructions from Canvas.</span></span></label>
+            <label class="check"><input type="checkbox" id="po-pad" checked><span><span class="label">Same number of bubbles for every question</span><span class="sub">Every multiple-choice question gets as many bubbles as the question with the most options (the default). Untick to print one bubble per option.</span></span></label>
+            <label class="check"><input type="checkbox" id="po-rules"><span><span class="label">Rule between questions</span><span class="sub">A thin grey line between one question and the next, so each question is easy to follow across to its answer. On by default for Merged One Column.</span></span></label>
           </div>
-          <div class="form-grid texts">
-            <label for="po-calc">Calculated Question Instructions:</label>
-            <input type="text" id="po-calc" class="text wide">
-            <label for="po-fill">Fill-in-the-blank Instructions:</label>
-            <input type="text" id="po-fill" class="text wide">
-            <label for="po-blank">Replace ______ in fill-in-the-blank questions with:</label>
-            <input type="text" id="po-blank" class="text wide" placeholder="__________ (default)">
-          </div>
-          <p class="hint pool-hint">The instructions are printed under every question of that kind. Leave a box empty for the standard text (shown in grey); type <code>none</code> to print nothing.</p>
         </div>
       </details>
-    </section>
-
-    <section class="block" aria-label="Page options">
-      <details class="pool print-opts" id="page-details">
-        <summary>Page Options <span class="summary-note">For collating, page organization, setting a title page.</span></summary>
+      <details class="pool tune" id="lang-details">
+        <summary>Language and numbers <span class="summary-note" id="lang-note"></span><span class="changed" data-changed="lang" hidden></span></summary>
         <div class="pool-body">
-          <p class="hint pool-hint" id="pg-layout-note"></p>
-          <div class="choices tight po-checks" id="page-opts">
-            <label class="check"><input type="checkbox" data-po="collate-exams"><span><span class="label">Collate exams</span><span class="sub" data-desc="collate-exams"></span></span></label>
-            <label class="check"><input type="checkbox" data-po="collate-answer-cards"><span><span class="label">Collate answer cards</span><span class="sub" data-desc="collate-answer-cards"></span></span></label>
-            <label class="check"><input type="checkbox" data-po="title-page"><span><span class="label">Title page</span><span class="sub" data-desc="title-page"></span></span></label>
-            <label class="check"><input type="checkbox" data-po="collate-title-pages"><span><span class="label">Collate title pages</span><span class="sub" data-desc="collate-title-pages"></span></span></label>
-            <label class="check"><input type="checkbox" data-po="pad-title-page"><span><span class="label">Pad title page <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-title-page"></span></span></label>
-            <label class="check"><input type="checkbox" data-po="pad-exam"><span><span class="label">Pad exam <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-exam"></span></span></label>
-            <label class="check"><input type="checkbox" data-po="pad-answer-cards"><span><span class="label">Pad answer cards <span class="tag duplex">duplex printing</span></span><span class="sub" data-desc="pad-answer-cards"></span></span></label>
+          <div class="form-grid">
+            <span class="grid-label" id="plang-h">Printed in:</span>
+            <span class="enclosed-row">
+              <span role="radiogroup" aria-labelledby="plang-h" class="inline-radios">
+                <label class="bubble inline"><input type="radio" name="plang" value="en" checked><span class="label">English</span><span class="sub">instructions, headings and labels</span></label>
+                <label class="bubble inline"><input type="radio" name="plang" value="fr"><span class="label" lang="fr">Français</span><span class="sub" lang="fr">consignes, titres et étiquettes</span></label>
+              </span>
+              <span class="pool-of">The quiz itself is printed as written.</span>
+            </span>
+            <span class="grid-label" id="po-decimal-label">Decimal mark:</span>
+            <span class="enclosed-row">
+              <span role="radiogroup" aria-labelledby="po-decimal-label" class="inline-radios">
+                <label class="bubble inline"><input type="radio" name="po-decimal" value="point" checked><span class="label">0.5</span><span class="sub" id="po-decimal-point-sub">point</span></label>
+                <label class="bubble inline"><input type="radio" name="po-decimal" value="comma"><span class="label">0,5</span><span class="sub" id="po-decimal-comma-sub">comma</span></label>
+              </span>
+              <span class="pool-of">for calculated-question values and the instructions for number boxes; the default follows the print language. MasterTest Marker reads either.</span>
+            </span>
+            <span class="grid-label" id="adv-csv-label">answer_key.csv:</span>
+            <span class="enclosed-row">
+              <span role="radiogroup" aria-labelledby="adv-csv-label" class="inline-radios">
+                <label class="bubble inline"><input type="radio" name="adv-csv" value="comma" checked><span class="label">,</span><span class="sub" id="adv-csv-comma-sub">commas, 0.5</span></label>
+                <label class="bubble inline"><input type="radio" name="adv-csv" value="semicolon"><span class="label">;</span><span class="sub" id="adv-csv-semicolon-sub">semicolons, 0,5</span></label>
+              </span>
+              <span class="pool-of" id="adv-csv-hint">as the spreadsheet that opens it expects: semicolons for French Excel. The default follows the print language.</span>
+            </span>
           </div>
         </div>
       </details>
-    </section>
-
-    <section class="block" aria-label="Advanced options">
-      <details class="pool print-opts" id="adv-details">
-        <summary>Advanced Options <span class="summary-note">QR code quality, seed value.</span></summary>
+      <details class="pool tune" id="adv-details">
+        <summary>Advanced <span class="summary-note">QR code quality, seed</span><span class="changed" data-changed="adv" hidden></span></summary>
         <div class="pool-body">
           <div class="form-grid">
             <label for="adv-qr">QR code quality:</label>
@@ -762,14 +836,6 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             </select></span>
             <span class="grid-label"></span>
             <span class="pool-of">How much of each QR code can be smudged, folded or written on and still read. Higher levels make denser codes; L helps cards with many questions or extra QR fields fit.</span>
-            <span class="grid-label" id="adv-csv-label">answer_key.csv:</span>
-            <span class="enclosed-row">
-              <span role="radiogroup" aria-labelledby="adv-csv-label" class="inline-radios">
-                <label class="bubble inline"><input type="radio" name="adv-csv" value="comma" checked><span class="label">,</span><span class="sub" id="adv-csv-comma-sub">commas, 0.5</span></label>
-                <label class="bubble inline"><input type="radio" name="adv-csv" value="semicolon"><span class="label">;</span><span class="sub" id="adv-csv-semicolon-sub">semicolons, 0,5</span></label>
-              </span>
-              <span class="pool-of" id="adv-csv-hint">as the spreadsheet that opens it expects: semicolons for French Excel. The default follows the print language.</span>
-            </span>
             <label for="adv-seed">Seed:</label>
             <span><input type="text" id="adv-seed" class="text" inputmode="numeric" placeholder="random each time" spellcheck="false"> <span class="pool-of">the same seed, files and options print exactly the same exams again</span></span>
           </div>
@@ -777,38 +843,11 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       </details>
     </section>
 
-    <section class="block" aria-labelledby="exams-h">
-      <h2 id="exams-h">How should we generate these exams?</h2>
-      <p class="hint" id="exams-hint">(Load a class list to use either of the options below)</p>
-      <fieldset id="mode" disabled>
-        <legend hidden>Exams for the class list</legend>
-        <div class="choices">
-          <label class="bubble"><input type="radio" name="mode" value="unique" checked>
-            <span><span class="label">A unique exam for each student</span><span class="sub">Every student gets their own order of questions and answers.</span></span></label>
-          <div>
-            <label class="bubble"><input type="radio" name="mode" value="variants">
-              <span><span class="label">Variants</span><span class="sub">A few versions of the exam, handed out among the students.</span></span></label>
-            <div class="variants-count">
-              <span id="variants-label">Number of variants</span>
-              <span class="stepper">
-                <button type="button" data-step="variants" data-by="-1" aria-label="Fewer variants" disabled>−</button>
-                <input type="number" id="variants" min="1" max="99" value="2" inputmode="numeric" aria-labelledby="variants-label" disabled>
-                <button type="button" data-step="variants" data-by="1" aria-label="More variants" disabled>+</button>
-              </span>
-            </div>
-          </div>
-        </div>
-      </fieldset>
-      <h3 class="sub-h" id="blanks-h">How many cards should we make for students not in the class list?</h3>
-      <p class="hint">On these cards students can write their name by hand and either bubble in or write their student number. Use this to have replacement cards on hand or if you don't want to upload a class list.</p>
-      <span class="stepper">
-        <button type="button" data-step="blanks" data-by="-1" aria-label="Fewer blank cards">−</button>
-        <input type="number" id="blanks" min="0" max="999" value="0" inputmode="numeric" aria-labelledby="blanks-h">
-        <button type="button" data-step="blanks" data-by="1" aria-label="More blank cards">+</button>
-      </span>
-    </section>
-
-
+    <div class="recap" id="recap" hidden>
+      <p class="recap-title" id="recap-title"></p>
+      <p id="recap-who"></p>
+      <p id="recap-how"></p>
+    </div>
 
     <div class="actions">
       <button type="button" class="primary" id="generate" disabled>Create Exam Packet</button>
@@ -824,8 +863,8 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         <h1 id="result-title" tabindex="-1">Making your exam…</h1>
         <p id="result-text">This takes a few seconds for a class.</p>
         <p><a id="download" hidden>Download again</a></p>
-        <p class="config-link" id="config-link" hidden><a id="config-download">Download Exam Configuration</a>
-          <span class="sub">Settings for this exam (not the files or the password). Use <em>Load Previous Exam Config</em> to make the same kind of exam again.</span></p>
+        <p class="config-link" id="config-link" hidden><a id="config-download">Download these settings</a>
+          <span class="sub">The settings of this exam (not the files or the password). Use <em>Load saved settings</em> to make the same kind of exam again.</span></p>
         <div class="actions" style="border-top:0;padding-top:.6rem">
           <button type="button" class="secondary" id="back" hidden>Make another exam</button>
         </div>

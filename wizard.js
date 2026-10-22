@@ -2,7 +2,7 @@
 // the question pool, paper size and layout, variants and blank cards; Create Exam Packet asks for an optional
 // answer-key password, runs MasterTest Builder in the worker (in this tab's memory) and step 2
 // hands over the zip and the exam configuration (an options file that the command line reads
-// too, and that "Load Previous Exam Config" reads back).
+// too, and that "Load saved settings" reads back).
 //
 // The source is in parts, web/wizard/*.js, one per section of the page; tools/build_web.py joins
 // them in order into wizard.js (one script, so every function is defined wherever it is called).
@@ -126,11 +126,6 @@ function buildLayouts() {
     track.append(b);
   }
   selectLayout(layout.id, false);
-  track.addEventListener("scroll", updateNav, { passive: true });
-  window.addEventListener("resize", updateNav);
-  $("prev").addEventListener("click", () => track.scrollBy({ left: -track.clientWidth * 0.8, behavior: smooth() }));
-  $("next").addEventListener("click", () => track.scrollBy({ left: track.clientWidth * 0.8, behavior: smooth() }));
-  updateNav();
 }
 
 function smooth() {
@@ -146,13 +141,8 @@ function selectLayout(id, focus) {
     b.tabIndex = on ? 0 : -1;
     if (on && focus) { b.focus(); b.scrollIntoView({ block: "nearest", inline: "nearest", behavior: smooth() }); }
   }
-}
-
-function updateNav() {
-  const t = $("layouts");
-  $("prev").disabled = t.scrollLeft <= 2;
-  $("next").disabled = t.scrollLeft + t.clientWidth >= t.scrollWidth - 2;
-  $("prev").parentElement.hidden = t.scrollWidth <= t.clientWidth + 2;
+  // the page options under the layouts are those of this layout
+  if (typeof showPageOptions === "function" && $("page-opts")) showPageOptions();
 }
 // MasterTest Web, the files, the quiz in the export, and Chinese, Japanese and Korean text. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ files
@@ -713,26 +703,26 @@ function printArgs(run) {
 // why Generate cannot go ahead with these print options, or ""
 function printProblem() {
   const fs = $("po-font-size").value.trim(), os = $("po-option-size").value.trim();
-  if (fs && !(Number(fs) >= 4 && Number(fs) <= 72)) return tr("Print Options: the font size must be from 4 to 72 points.");
-  if (os && !(Number(os) >= 4 && Number(os) <= 72)) return tr("Print Options: the option font size must be from 4 to 72 points.");
+  if (fs && !(Number(fs) >= 4 && Number(fs) <= 72)) return tr("Fine-tuning: the font size must be from 4 to 72 points.");
+  if (os && !(Number(os) >= 4 && Number(os) <= 72)) return tr("Fine-tuning: the option font size must be from 4 to 72 points.");
   const cols = $("po-option-columns").value.trim();
-  if (cols && !(Number.isInteger(Number(cols)) && Number(cols) >= 1 && Number(cols) <= 6)) return tr("Print Options: option columns must be from 1 to 6.");
+  if (cols && !(Number.isInteger(Number(cols)) && Number(cols) >= 1 && Number(cols) <= 6)) return tr("Fine-tuning: option columns must be from 1 to 6.");
   const lengths = [["po-spacing", "question spacing"], ["po-width", "answer field width"],
     ...(marginMode() === "all" ? [["po-margin", "margins"]] : SIDES.map((side) => ["po-margin-" + side, side + " margin"]))];
   for (const [id, what] of lengths) {
     const v = $(id).value.trim();
-    if (v && !/^\d+(\.\d+)?\s*(in|cm|mm|pt)?$/i.test(v)) return tr("Print Options: write the {what} as a number and a unit, such as 0.75in, 2cm, 20mm or 54pt.", { what: tr(what) });
-    if (id.startsWith("po-margin") && /^\d+(\.\d+)?$/.test(v) && Number(v) < 5) return tr("Print Options: a margin of {v} without a unit is {v} points. Did you mean {v}in or {v}cm?", { v });
+    if (v && !/^\d+(\.\d+)?\s*(in|cm|mm|pt)?$/i.test(v)) return tr("Fine-tuning: write the {what} as a number and a unit, such as 0.75in, 2cm, 20mm or 54pt.", { what: tr(what) });
+    if (id.startsWith("po-margin") && /^\d+(\.\d+)?$/.test(v) && Number(v) < 5) return tr("Fine-tuning: a margin of {v} without a unit is {v} points. Did you mean {v}in or {v}cm?", { v });
   }
   const sh = $("po-shading").value.trim();
-  if (sh && !(Number(sh) >= 0 && Number(sh) <= 100)) return tr("Print Options: cell shading is a percentage from 0 to 100.");
-  if (aciMode() === "file" && !aciHtml()) return tr("Print Options: choose your answer card instructions file (.html), or pick Standard or None.");
+  if (sh && !(Number(sh) >= 0 && Number(sh) <= 100)) return tr("Fine-tuning: cell shading is a percentage from 0 to 100.");
+  if (aciMode() === "file" && !aciHtml()) return tr("Fine-tuning: choose your answer card instructions file (.html), or pick Standard or None.");
   for (const id of FONT_PICKS) {
     const f = fontChoice[id];
-    if (f && f.kind === "missing") return tr("Print Options: the font “{f}” from the configuration is not here: choose it from the fonts on this computer, choose its file, or pick another font.", { f: f.label });
+    if (f && f.kind === "missing") return tr("Fine-tuning: the font “{f}” from the configuration is not here: choose it from the fonts on this computer, choose its file, or pick another font.", { f: f.label });
   }
   const seed = $("adv-seed").value.trim();
-  if (seed && !/^\d{1,10}$/.test(seed)) return tr("Advanced Options: the seed is a whole number.");
+  if (seed && !/^\d{1,10}$/.test(seed)) return tr("Advanced: the seed is a whole number.");
   return "";
 }
 
@@ -950,7 +940,7 @@ function setFont(id, v) {
 
 const PAGE_DESC = {
   "collate-exams": { booklet: "All exam booklets in one file, exams.pdf, instead of one file per student.",
-    single: "All quizzes in one file, quizzes.pdf (the same as Collate answer cards for this layout).",
+    single: "All quizzes in one file, quizzes.pdf, instead of one file per student.",
     duplex: "All folded booklets in one file, exams.pdf." },
   "collate-answer-cards": { booklet: "All answer cards in one file, answer_cards.pdf, instead of one file per student.",
     single: "All quizzes in one file, quizzes.pdf (the same as Collate exams for this layout).",
@@ -964,7 +954,7 @@ const PAGE_DESC = {
     single: null, duplex: "Leaves page 2 of the booklet blank, so the questions start on a right-hand page.",
     merged: "A blank page after the title page, so the first sheet starts on a new sheet of paper when printed double-sided. Needs Title page." },
   "pad-exam": { booklet: "Blank pages after each booklet, so the next student's booklet starts on a new sheet when printed double-sided.",
-    single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided (the same as Pad answer cards here).",
+    single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided.",
     duplex: false },
   "pad-answer-cards": { booklet: "A blank page after every answer card, so each card is on its own sheet when printed double-sided.",
     single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided (the same as Pad exam here).",
@@ -989,10 +979,15 @@ function showPageOptions() {
     if (kind === "merged" && box.dataset.po === "collate-title-pages") { off = true; box.checked = false; }
     box.disabled = off;
     box.closest("label").classList.toggle("off", off);
+    // options that mean nothing for this layout are not shown at all
+    const na = d === null || d === false || (kind === "duplex" && box.dataset.po === "collate-title-pages") ||
+      (kind === "merged" && box.dataset.po === "collate-title-pages") || (kind === "duplex" && box.dataset.po === "title-page") ||
+      // one document is both quiz and card: the exam options alone, which mean the same as the card ones
+      ((kind === "single" || kind === "merged") && ["collate-answer-cards", "pad-answer-cards"].includes(box.dataset.po));
+    box.closest("label").hidden = na;
     box.closest("label").querySelector("[data-desc]").textContent = text;
   }
-  $("pg-layout-note").textContent = tr("For the {layout} layout.", { layout: layoutName(layout) }) +
-    (kind === "single" || kind === "merged" ? tr(" The quiz and its answers are on the same pages, so the exam and answer-card options mean the same.") : "");
+  $("pg-layout-note").textContent = tr("{layout}: files and pages", { layout: layoutName(layout) });
 }
 function pageArgs() {
   const on = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).map((b) => b.dataset.po);
@@ -1033,7 +1028,7 @@ function showPrintDefaults() {
     : tr("Every multiple-choice question gets as many bubbles as the quiz's question with the most options, so every row looks the same (the default). Untick to print one bubble per option.");
 }
 
-for (const el of document.querySelectorAll("#print-details input, #print-details select")) {
+for (const el of document.querySelectorAll(".tune input, .tune select")) {
   el.addEventListener("input", update);
   el.addEventListener("change", update);
 }
@@ -1081,8 +1076,7 @@ function setPrintOptions(got) {
   $("po-essay").value = ["1/4", "1/2", "3/4", "1"].includes(got["--essay-space"]) ? got["--essay-space"] : "1/4";
   $("po-essay-all").checked = !!got["--essay-space-all"];
   any = any || $("po-essay").value !== "1/4" || $("po-essay-all").checked || rulesChosen !== null || got["--no-option-pad"] || got["--option-dot"] || got["--option-columns"] || Object.values(PO_FLAGS).some((o) => got[o]);
-  if (any) $("print-details").open = true;
-  return any;
+  return any;     // the Fine-tuning sections then say how many settings were changed
 }
 // MasterTest Web, the options of a run, and the question pool. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ options
@@ -1109,6 +1103,8 @@ const blanks = () => Math.max(0, parseInt($("blanks").value, 10) || 0);
 const mode = () => document.querySelector('input[name="mode"]:checked').value;
 
 function update() {
+  showChanged();
+  showRecap();
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
   if (hasClass) $("exams-hint").replaceChildren();
@@ -1144,6 +1140,52 @@ function update() {
     : !quizReady ? tr("Reading the quiz…")
     : !(hasClass || b > 0) ? tr("Choose a class list or at least one blank card.")
     : poolProblem || classIssue;
+}
+
+// Fine-tuning: how many settings of each section differ from the defaults, and what the language
+// section is set to, so the sections can stay closed
+const TUNE_GROUPS = {
+  text: ["--font", "--option-font", "--font-size", "--margin", "--margin-left", "--margin-right", "--margin-top", "--margin-bottom",
+    "--question-spacing", "--option-font-size", "--option-dot", "--option-letters", "--option-columns", "--show-points",
+    "--no-quiz-instructions", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text"],
+  answer: ["--answer-width", "--cell-shading", "--answer-card-instructions", "--essay-space", "--essay-space-all", "--no-option-pad",
+    "--question-rules"],
+  lang: ["--print-language", "--decimal-mark", "--csv-separator"],
+  adv: ["--qr-quality", "--seed"],
+};
+function showChanged() {
+  const flags = [...printArgs(false), ...langArgs(), ...advArgs()].filter((x) => typeof x === "string" && x.startsWith("--"));
+  for (const el of document.querySelectorAll("[data-changed]")) {
+    const n = flags.filter((f) => TUNE_GROUPS[el.dataset.changed].includes(f)).length;
+    el.hidden = !n;
+    el.textContent = trn(n, "{n} setting changed", "{n} settings changed");
+  }
+  $("lang-note").textContent = [
+    printLang === "fr" ? tr("Printed in French") : tr("Printed in English"),
+    decimalMark() === "comma" ? tr("decimal comma") : tr("decimal point"),
+    csvSeparator() === "semicolon" ? tr("answer_key.csv with semicolons") : tr("answer_key.csv with commas"),
+  ].join(" · ");
+}
+
+// what Create Exam Packet will make, in two lines above it
+function showRecap() {
+  const ok = quiz.state === "ready" && quiz.summary;
+  $("recap").hidden = !ok;
+  if (!ok) return;
+  $("recap-title").textContent = $("sum-title").value.trim() || quizTitle.name;
+  const students = classFile && cls.state === "ready" ? Number($("cls-n").textContent) || 0 : 0;
+  const who = [];
+  if (students) who.push(trn(students, "{n} student", "{n} students"));
+  if (blanks()) who.push(trn(blanks(), "{n} blank card", "{n} blank cards"));
+  const perExam = $("simulate").checked ? counts().reduce((a, b) => a + b, 0) : Number($("limit").value) || pool.total;
+  $("recap-who").textContent = [
+    who.join(" + ") || tr("No students or blank cards yet"),
+    ...(!classFile ? [] : mode() === "variants" ? [tr("{n} variants", { n: clamp($("variants"), parseInt($("variants").value, 10) || 1) })]
+      : [tr("a unique exam for each student")]),
+    trn(perExam, "{n} question per exam", "{n} questions per exam"),
+  ].join(" · ");
+  $("recap-how").textContent = [layoutName(layout), paper === "iso" ? tr("A4") : tr("letter"),
+    printLang === "fr" ? tr("printed in French") : tr("printed in English")].join(" · ");
 }
 
 // the options for a run, without the files: the configuration that can be saved and loaded
@@ -1325,7 +1367,7 @@ function configText(seed) {
   const head = [
     `# MasterTest exam configuration, saved by ${$("version-line").textContent} on ${new Date().toISOString().slice(0, 10)}`,
     `# Quiz: ${lastArgs.title}` + (lastArgs.quiz ? ` (quiz ${lastArgs.quiz.number} of ${lastArgs.quiz.of} in ${lastArgs.quiz.file})` : ""),
-    "# To use it again: Load Previous Exam Config in MasterTest Web, or on a computer:",
+    "# To use it again: Load saved settings in MasterTest Web, or on a computer:",
     `#   python mastertest_builder.py <quiz export.zip>${lastArgs.classList ? " --class-list <class list.csv>" : ""} @<this file>`,
   ];
   if (seed && !o.includes("--seed")) head.push(`# This run used --seed ${seed}; add that line to print exactly the same exams again.`);
@@ -1381,7 +1423,7 @@ const HANDLED_OPTIONS = new Set(["--page-size", "--columns", "--quiz", "--varian
   "--option-columns", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--margin-left",
   "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading", "--answer-card-instructions",
   "--page-options", "--qr-quality", "--seed", "--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad",
-  "--show-points", "--no-quiz-instructions", "--option-dot", "--essay-space-all"]);
+  "--show-points", "--no-quiz-instructions", "--option-dot", "--essay-space", "--essay-space-all", "--question-rules"]);
 let builderSpec = null;          // MasterTest Builder's version and options (web_runner.version())
 let configWaiting = null;        // a configuration chosen before MasterTest Builder had loaded
 
@@ -1469,10 +1511,10 @@ function loadConfig(name, textIn) {
   const unknownPages = wanted.filter((w) => ![...document.querySelectorAll("#page-opts input")].some((b) => canon(b.dataset.po) === w));
   if (unknownPages.length) extras.push("--page-options", unknownPages.join(","));   // the program explains them
   showPageOptions();
-  if (wanted.length) { $("page-details").open = true; parts.push(tr("page options")); }
+  if (wanted.length) parts.push(tr("page options"));
   $("adv-qr").value = ["L", "Q", "H"].includes((got["--qr-quality"] || "").toUpperCase()) ? got["--qr-quality"].toUpperCase() : "";
   $("adv-seed").value = got["--seed"] || "";
-  if (got["--qr-quality"] || got["--seed"]) { $("adv-details").open = true; parts.push(got["--seed"] ? tr("seed {n}", { n: got["--seed"] }) : tr("QR code quality")); }
+  if (got["--qr-quality"] || got["--seed"]) parts.push(got["--seed"] ? tr("seed {n}", { n: got["--seed"] }) : tr("QR code quality"));
   if (sortBy.length > 1) parts.push(tr("sorted by {c} only (the page sorts by one column)", { c: sortBy[0] }));
   let msg = tr("Loaded {name}: {parts}.", { name, parts: parts.join(", ") });
   if (extras.length) msg += tr(" Also used when generating: {extras}.", { extras: extras.join(" ") });

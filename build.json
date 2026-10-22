@@ -1,5 +1,5 @@
 {
- "version": "0.5.19",
+ "version": "0.5.20",
  "pyodide": "pyodide/",
  "pyodide_version": "0.29.5",
  "packages": [
@@ -12,10 +12,10 @@
  ],
  "wheels": [
   "pypdf-6.21.2-py3-none-any.whl",
-  "reportlab-5.0.1-py3-none-any.whl",
+  "reportlab-5.1.0-py3-none-any.whl",
   "segno-1.6.6-py3-none-any.whl"
  ],
- "app": "app-0.5.19.zip",
+ "app": "app-0.5.20.zip",
  "cjk": {
   "sc": {
    "file": "fonts/cjk/NotoSansCJK-sc.ttf.gz",
