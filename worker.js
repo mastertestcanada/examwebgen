@@ -59,6 +59,15 @@ async function deriveKey(password, headerHex) {
 async function run({ files, argv, password, cjk }) {
   const t0 = performance.now();
   const font = cjk ? await cjkFont(cjk) : null;
+  // a supplied font chosen by name (--font, --option-font) is fetched now, into the app's fonts folder
+  for (const [family, names] of Object.entries(build.fonts || {})) {
+    if (!argv.some((a, i) => (argv[i - 1] === "--font" || argv[i - 1] === "--option-font") && a.toLowerCase() === family.toLowerCase())) continue;
+    for (const name of names) {
+      if (py.FS.analyzePath("/app/fonts/" + name).exists) continue;
+      const data = new Uint8Array(await (await fetch("fonts/supplied/" + name)).arrayBuffer());
+      py.FS.writeFile("/app/fonts/" + name, data);
+    }
+  }
   // fontTools only for an uploaded OpenType (PostScript outlines) font or font collection, which are converted
   if (build.lazy_packages && files.some((f) => /\.(otf|ttc)$/i.test(f.name))) {
     post("progress", { text: "Loading the font converter…" });
