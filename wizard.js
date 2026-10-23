@@ -1129,13 +1129,13 @@ function update() {
   if (!exportFile) {
     // a link that opens the file chooser for the quiz export
     const load = document.createElement("button");
-    load.type = "button"; load.className = "link"; load.textContent = tr("Load a QTI/Akindi file to continue.");
+    load.type = "button"; load.className = "link"; load.textContent = tr("Load a Canvas, D2L or Akindi file to continue.");
     load.addEventListener("click", () => $("export").click());
     $("why").replaceChildren(load);
     return;
   }
   $("why").textContent = !ready ? tr("Create Exam Packet is ready once the exam maker has loaded.")
-    : quiz.state === "error" ? tr("Choose a Canvas quiz export (.zip) or a Word document (.docx) to continue.")
+    : quiz.state === "error" ? tr("Choose a Canvas or D2L quiz export (.zip) or a Word document (.docx) to continue.")
     : quiz.state === "choose" ? tr("Choose which quiz to print.")
     : !quizReady ? tr("Reading the quiz…")
     : !(hasClass || b > 0) ? tr("Choose a class list or at least one blank card.")

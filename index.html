@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MasterTest Web</title>
-<meta name="description" content="Make printable exams and answer cards from a Canvas quiz export, entirely in your browser.">
+<meta name="description" content="Make printable exams and answer cards from a Canvas or D2L Brightspace quiz export, entirely in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%230b74f2'/%3E%3C/svg%3E">
 <style>
 @font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap;
@@ -459,7 +459,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
   <!-- step 1 -->
   <div id="step1">
     <div class="title-row">
-      <h1>Make an exam from a Canvas quiz</h1>
+      <h1>Make an exam from a Canvas or D2L quiz</h1>
       <label class="small-button" id="config-load">
         <input type="file" id="config-file" accept=".txt,text/plain">
         <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h4l1.5 1.5h5.5v7h-11z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -474,7 +474,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 
     <section class="block" aria-labelledby="quiz-h">
       <h2 id="quiz-h" class="num-h"><span class="num" aria-hidden="true">1</span>Quiz</h2>
-      <p class="hint">A Canvas QTI export (.zip), or a Word document (.docx) written for Akindi's importer.</p>
+      <p class="hint">A quiz export from Canvas (QTI) or D2L Brightspace (.zip), or a Word document (.docx) written for Akindi's importer.</p>
       <div class="files">
         <label class="drop" id="export-drop">
           <input type="file" id="export" accept=".zip,application/zip,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
@@ -746,7 +746,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
           </div>
           <div class="choices tight po-checks">
             <label class="check"><input type="checkbox" id="po-points"><span><span class="label">Show points</span><span class="sub">Print each question's point value.</span></span></label>
-            <label class="check"><input type="checkbox" id="po-noinstr"><span><span class="label">Suppress quiz instructions</span><span class="sub">Leave out the quiz's instructions from Canvas.</span></span></label>
+            <label class="check"><input type="checkbox" id="po-noinstr"><span><span class="label">Suppress quiz instructions</span><span class="sub">Leave out the quiz's own instructions.</span></span></label>
           </div>
           <div class="form-grid texts">
             <label for="po-calc">Calculated question instructions:</label>
