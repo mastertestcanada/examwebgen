@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.25  | 2026-10-23 | Brightspace class lists: a Grades > Export file is read as it is, with OrgDefinedId (else Username) as the student number, without the # Brightspace writes before it, and the name from First Name and Last Name. |
 | 0.5.24  | 2026-10-22 | Ordering questions from Canvas New Quizzes and D2L: the student writes each item's position in a digit cell, as for matching; each exam prints the items in its own order (never the right one), with the scale under the question (1 = Strongest … 4 = Weakest). Marked by MasterTest Marker as matching, all or nothing or by D2L's method. Canvas equations (LaTeX) printed as text, like D2L's. Exports with course files: only the quiz files and the pictures the questions show are unpacked. |
 | 0.5.23  | 2026-10-21 | D2L matching questions: their scoring method is read from the question's scoring rules rather than D2L's grading-type number, which had marked all-or-nothing questions as equally weighted. |
 | 0.5.22  | 2026-10-21 | D2L multi-select questions with limited selections now say "Select only 2 answers." ("Select only 1 answer." for one). |
