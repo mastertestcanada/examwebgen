@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.28  | 2026-10-26 | MasterTest Web reads the quiz export from the disk as it needs it instead of copying it into memory: course exports of a gigabyte or more (videos, slides) no longer fail with "out of memory"; only the quiz files and their pictures are read. |
 | 0.5.27  | 2026-10-26 | Common Cartridges (.imscc): Canvas course exports are read from Canvas's own copy of each quiz, with its question groups' item banks; Brightspace (and other) cartridges' standard question types are read, with a warning that Brightspace cartridges leave out matching, ordering and arithmetic questions, multi-select scoring and random sections. MasterTest Web accepts .imscc files. |
 | 0.5.26  | 2026-10-26 | D2L random sections (pools): questions written inside a pool share the pool's id in the export; they are now told apart by their label, so each is its own question and a pool never draws the same one twice. |
 | 0.5.25  | 2026-10-23 | Brightspace class lists: a Grades > Export file is read as it is, with OrgDefinedId (else Username) as the student number, without the # Brightspace writes before it, and the name from First Name and Last Name. |

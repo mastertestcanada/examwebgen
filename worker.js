@@ -1,11 +1,42 @@
 // Runs MasterTest Builder (Python) inside the browser with Pyodide. Everything happens in this
-// worker's memory: the files the page sends are written to an in-memory file system, the
-// program runs, and the result comes back as a zip. Nothing is sent anywhere.
+// worker: the files the page sends are written to an in-memory file system (the quiz export is read
+// from the disk instead, as needed), the program runs, and the result comes back as a zip. Nothing
+// is sent anywhere.
 "use strict";
 
 let py = null;
 let build = null;
 const cjkFonts = {};   // region -> font bytes, downloaded once per visit
+
+// The quiz export is not copied into memory: the File is mounted read-only (WORKERFS) at /export,
+// outside /work (which each run empties), and /work/in/<name> links to it. Python then reads only
+// what it opens: the zip's list of files, the quiz files and their pictures.
+let mountedExport = null;
+function linkExport(file) {
+  const dir = "/export";
+  if (mountedExport !== file) {
+    if (mountedExport) { try { py.FS.unmount(dir); } catch (e) { /* not mounted */ } }
+    py.FS.mkdirTree(dir);
+    py.FS.mount(py.FS.filesystems.WORKERFS, { files: [file] }, dir);
+    mountedExport = file;
+  }
+  py.FS.mkdirTree("/work/in");
+  const link = "/work/in/" + file.name;
+  if (!py.FS.analyzePath(link).exists) py.FS.symlink(dir + "/" + file.name, link);
+}
+
+function putFile(f) {
+  const path = "/work/in/" + f.name;
+  if (f.file) {
+    linkExport(f.file);
+  } else if (f.unzip) {
+    py.FS.mkdirTree(path);
+    py.unpackArchive(f.data, "zip", { extractDir: path });
+  } else {
+    py.FS.mkdirTree(path.slice(0, path.lastIndexOf("/")));   // fonts/... go in folders of their own
+    py.FS.writeFile(path, new Uint8Array(f.data));
+  }
+}
 
 function post(type, data = {}) {
   self.postMessage({ type, ...data });
@@ -76,16 +107,7 @@ async function run({ files, argv, password, cjk }) {
   py.setStdout({ batched: (text) => post("log", { text, stream: "stdout" }) });
   py.setStderr({ batched: (text) => post("log", { text, stream: "stderr" }) });
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
-  for (const f of files) {
-    const path = "/work/in/" + f.name;
-    if (f.unzip) {
-      py.FS.mkdirTree(path);
-      py.unpackArchive(f.data, "zip", { extractDir: path });
-    } else {
-      py.FS.mkdirTree(path.slice(0, path.lastIndexOf("/")));   // fonts/... go in folders of their own
-      py.FS.writeFile(path, new Uint8Array(f.data));
-    }
-  }
+  for (const f of files) putFile(f);
   if (font) {
     const path = `/work/in/fonts/cjk/NotoSansCJK-${cjk}.ttf`;
     py.FS.mkdirTree("/work/in/fonts/cjk");
@@ -111,11 +133,7 @@ async function run({ files, argv, password, cjk }) {
     post("progress", { text: "Protecting the answer key…" });
     const key = await deriveKey(password, rc);
     py.runPython("web_runner.reset()");
-    for (const f of files) {
-      const path = "/work/in/" + f.name;
-      if (f.unzip) { py.FS.mkdirTree(path); py.unpackArchive(f.data, "zip", { extractDir: path }); }
-      else { py.FS.mkdirTree(path.slice(0, path.lastIndexOf("/"))); py.FS.writeFile(path, new Uint8Array(f.data)); }
-    }
+    for (const f of files) putFile(f);
     if (font) { py.FS.mkdirTree("/work/in/fonts/cjk"); py.FS.writeFile(`/work/in/fonts/cjk/NotoSansCJK-${cjk}.ttf`, font); }
     py.globals.set("web_derived", py.toPy({ [rc]: key }));
     rc = py.runPython("web_runner.run(web_argv, web_password, web_derived)");
@@ -141,20 +159,20 @@ function setLang(lang) {
   py.runPython("from mtbuilder import web_runner; web_runner.set_language(web_lang)");
 }
 
-function inspect({ name, data, lang }) {
+function inspect({ name, file, lang }) {
   setLang(lang);
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
-  py.FS.writeFile("/work/in/" + name, new Uint8Array(data));
+  linkExport(file);
   py.globals.set("web_name", name);
   post("quizzes", { name, result: JSON.parse(py.runPython("web_runner.quizzes(web_name)")) });
 }
 
-function summary({ name, number, data, lang, refresh }) {
+function summary({ name, number, file, lang, refresh }) {
   setLang(lang);
-  // the export may have been cleared by a run since it was inspected
-  if (data && !py.FS.analyzePath("/work/in/" + name).exists) {
+  // the export's link may have been cleared by a run since it was inspected
+  if (file && !py.FS.analyzePath("/work/in/" + name).exists) {
     py.runPython("from mtbuilder import web_runner; web_runner.reset()");
-    py.FS.writeFile("/work/in/" + name, new Uint8Array(data));
+    linkExport(file);
   }
   py.globals.set("web_name", name);
   py.globals.set("web_number", number);

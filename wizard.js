@@ -178,18 +178,17 @@ const clearExport = filePicker("export", "export-drop", "export-state", () => tr
 
 // ------------------------------------------------------------------ the quiz in the export
 
-async function inspectExport() {
+// The export goes to the worker as the File itself, which it reads from the disk as it needs it (a
+// course export can be a gigabyte; only the quiz files and their pictures are ever read).
+function inspectExport() {
   const f = exportFile;
-  const data = await f.arrayBuffer();
-  if (f !== exportFile) return;            // another file was chosen meanwhile
-  worker.postMessage({ type: "inspect", name: f.name, data, lang: uiLang }, [data]);
+  worker.postMessage({ type: "inspect", name: f.name, file: f, lang: uiLang });
 }
 
-async function requestSummary(number) {
+function requestSummary(number) {
   Object.assign(quiz, { state: "loading", number, summary: null });
   showQuiz();
-  const data = await exportFile.arrayBuffer();
-  worker.postMessage({ type: "summary", name: exportFile.name, number, data, lang: uiLang }, [data]);
+  worker.postMessage({ type: "summary", name: exportFile.name, number, file: exportFile, lang: uiLang });
 }
 
 function onQuizzes(data) {
@@ -214,9 +213,8 @@ function onQuizzes(data) {
 }
 
 // the summary's messages again, in the page's new language, keeping every choice made
-async function refreshSummary() {
-  const data = await exportFile.arrayBuffer();
-  worker.postMessage({ type: "summary", name: exportFile.name, number: quiz.number, data, lang: uiLang, refresh: true }, [data]);
+function refreshSummary() {
+  worker.postMessage({ type: "summary", name: exportFile.name, number: quiz.number, file: exportFile, lang: uiLang, refresh: true });
 }
 
 function onSummary(data) {
@@ -1702,7 +1700,7 @@ async function generate(password) {
   if (downloadUrl) { URL.revokeObjectURL(downloadUrl); downloadUrl = null; }
   lastArgs = { options: [...options(), ...(password ? ["--password"] : [])], title: quiz.summary.title,
     quiz: quiz.list.length > 1 ? { number: quiz.number, of: quiz.list.length, file: exportFile.name } : null, classList: !!classFile };
-  const files = [{ name: exportFile.name, data: await exportFile.arrayBuffer() }];
+  const files = [{ name: exportFile.name, file: exportFile }];   // read from the disk by the worker
   if (classFile) files.push({ name: classFile.name, data: await classFile.arrayBuffer() });
   if (aciMode() === "file") for (const f of aciFiles) files.push({ name: f.name, data: await f.arrayBuffer() });
   try {
@@ -1713,7 +1711,7 @@ async function generate(password) {
     return;
   }
   const cjk = quizCjk() && cjkFonts[cjkChosen()] ? cjkChosen() : null;
-  worker.postMessage({ type: "run", files, argv: argv(password), password, cjk }, files.map((f) => f.data));
+  worker.postMessage({ type: "run", files, argv: argv(password), password, cjk }, files.filter((f) => f.data).map((f) => f.data));
 }
 
 $("back").addEventListener("click", () => { showStep(1); $("generate").focus(); });
