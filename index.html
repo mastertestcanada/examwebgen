@@ -474,13 +474,13 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 
     <section class="block" aria-labelledby="quiz-h">
       <h2 id="quiz-h" class="num-h"><span class="num" aria-hidden="true">1</span>Quiz</h2>
-      <p class="hint">A quiz export from Canvas (QTI) or D2L Brightspace (.zip), or a Word document (.docx) written for Akindi's importer.</p>
+      <p class="hint">A quiz export from Canvas or D2L Brightspace (.zip or .imscc), or a Word document (.docx) written for Akindi's importer.</p>
       <div class="files">
         <label class="drop" id="export-drop">
-          <input type="file" id="export" accept=".zip,application/zip,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+          <input type="file" id="export" accept=".zip,application/zip,.imscc,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 2.8h8l4.2 4.2v14.2H6z"/><path d="M14 2.8V7h4.2"/><path d="M10 7h1.5M10 9.5h1.5M10 12h1.5"/><rect x="9.4" y="14" width="2.7" height="3.4" rx=".4"/></svg>
           <span class="title">Quiz export <span class="tag">required</span></span>
-          <span class="state" id="export-state">Choose or drop the .zip or .docx file</span>
+          <span class="state" id="export-state">Choose or drop the .zip, .imscc or .docx file</span>
         </label>
       </div>
       <div class="quiz" id="quiz" aria-live="polite" hidden>

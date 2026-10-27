@@ -167,7 +167,7 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
   return () => { input.value = ""; show(null); };
 }
 
-const clearExport = filePicker("export", "export-drop", "export-state", () => tr("Choose or drop the .zip or .docx file"), (f) => {
+const clearExport = filePicker("export", "export-drop", "export-state", () => tr("Choose or drop the .zip, .imscc or .docx file"), (f) => {
   exportFile = f;
   cjkRegion = null;     // a new export: follow its text again
   Object.assign(quiz, { state: f ? "reading" : "none", list: [], number: null, summary: null, message: "" });
@@ -1135,7 +1135,7 @@ function update() {
     return;
   }
   $("why").textContent = !ready ? tr("Create Exam Packet is ready once the exam maker has loaded.")
-    : quiz.state === "error" ? tr("Choose a Canvas or D2L quiz export (.zip) or a Word document (.docx) to continue.")
+    : quiz.state === "error" ? tr("Choose a Canvas or D2L quiz export (.zip or .imscc) or a Word document (.docx) to continue.")
     : quiz.state === "choose" ? tr("Choose which quiz to print.")
     : !quizReady ? tr("Reading the quiz…")
     : !(hasClass || b > 0) ? tr("Choose a class list or at least one blank card.")

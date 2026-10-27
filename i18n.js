@@ -71,7 +71,6 @@ const I18N = {
 "Forget it": "L'oublier",
 "Files": "Fichiers",
 "Export the quiz from Canvas as a QTI .zip file, or choose a Word document (.docx) written for Akindi's importer. A class list is optional: it gives each student a card with their name and number.": "Exportez le questionnaire de Canvas en fichier QTI .zip, ou choisissez un document Word (.docx) rédigé pour l'importateur d'Akindi. La liste de classe est facultative : elle donne à chaque étudiant une carte à son nom et à son numéro.",
-"Choose or drop the .zip or .docx file": "Choisissez ou déposez le fichier .zip ou .docx",
 "Check what was read from the Word document": "Vérifiez ce qui a été lu dans le document Word",
 "multiple choice": "choix multiple",
 "multiple answers": "réponses multiples",
@@ -584,9 +583,10 @@ const I18N = {
 "All quizzes in one file, quizzes.pdf, instead of one file per student.": "Tous les questionnaires dans un seul fichier, quizzes.pdf, au lieu d'un fichier par étudiant.",
 "A blank page after each quiz, so each starts on a new sheet when printed double-sided.": "Une page blanche après chaque questionnaire, pour que chacun commence sur une nouvelle feuille en recto verso.",
 "Make an exam from a Canvas or D2L quiz": "Créer un examen à partir d'un questionnaire Canvas ou D2L",
-"A quiz export from Canvas (QTI) or D2L Brightspace (.zip), or a Word document (.docx) written for Akindi's importer.": "Un export de questionnaire Canvas (QTI) ou D2L Brightspace (.zip), ou un document Word (.docx) rédigé pour l'importateur d'Akindi.",
 "Leave out the quiz's own instructions.": "Omettre les consignes du questionnaire lui-même.",
 "Load a Canvas, D2L or Akindi file to continue.": "Chargez un fichier Canvas, D2L ou Akindi pour continuer.",
-"Choose a Canvas or D2L quiz export (.zip) or a Word document (.docx) to continue.": "Choisissez un export de questionnaire Canvas ou D2L (.zip) ou un document Word (.docx) pour continuer."
+"A quiz export from Canvas or D2L Brightspace (.zip or .imscc), or a Word document (.docx) written for Akindi's importer.": "Un export de questionnaire Canvas ou D2L Brightspace (.zip ou .imscc), ou un document Word (.docx) rédigé pour l'importateur d'Akindi.",
+"Choose or drop the .zip, .imscc or .docx file": "Choisissez ou déposez le fichier .zip, .imscc ou .docx",
+"Choose a Canvas or D2L quiz export (.zip or .imscc) or a Word document (.docx) to continue.": "Choisissez un export de questionnaire Canvas ou D2L (.zip ou .imscc) ou un document Word (.docx) pour continuer."
 }
 };
