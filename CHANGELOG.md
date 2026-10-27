@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.30  | 2026-10-26 | A question with more than 6 options (A-F) is left out of the exam with a warning, instead of stopping the whole quiz. Large exports are read much faster (the pictures a quiz shows are found from its references, not by searching for every file's name), and the reading progress bar counts the quiz files' bytes. |
 | 0.5.29  | 2026-10-26 | MasterTest Web shows progress bars: while it reads an export ("Reading the export… 62%") and while it makes the exams ("Making the exam booklets: 98 of 150", then title pages, answer cards or quizzes, then putting the files together). |
 | 0.5.28  | 2026-10-26 | MasterTest Web reads the quiz export from the disk as it needs it instead of copying it into memory: course exports of a gigabyte or more (videos, slides) no longer fail with "out of memory"; only the quiz files and their pictures are read. |
 | 0.5.27  | 2026-10-26 | Common Cartridges (.imscc): Canvas course exports are read from Canvas's own copy of each quiz, with its question groups' item banks; Brightspace (and other) cartridges' standard question types are read, with a warning that Brightspace cartridges leave out matching, ordering and arithmetic questions, multi-select scoring and random sections. MasterTest Web accepts .imscc files. |
