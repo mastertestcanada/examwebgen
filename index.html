@@ -117,6 +117,7 @@ section.block { padding: 1.4rem 0; border-top: 1px solid var(--rule); }
 .quiz { margin-top: 1rem; }
 .quiz-status { margin: 0; color: var(--muted); }
 .quiz-status.bad { color: var(--wrong); font-weight: 700; }
+.meter { display: block; width: 100%; max-width: 28rem; height: .6rem; margin: .4rem 0; accent-color: var(--accent, #2b6cb0); }
 .quiz legend { font-weight: 700; margin-bottom: .6rem; padding: 0; }
 .summary-grid { display: grid; grid-template-columns: auto 1fr; gap: .2rem 1.2rem; align-items: center; }
 .summary .pool { background: var(--paper); margin-top: .9rem; }
@@ -485,6 +486,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       </div>
       <div class="quiz" id="quiz" aria-live="polite" hidden>
         <p class="quiz-status" id="quiz-status"></p>
+        <progress class="meter" id="read-meter" max="1" hidden></progress>
         <fieldset id="quiz-choice" hidden>
           <legend>This export holds <span id="quiz-count"></span> quizzes. Choose the one to print:</legend>
           <div class="choices" id="quiz-list"></div>
@@ -862,6 +864,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       <div>
         <h1 id="result-title" tabindex="-1">Making your exam…</h1>
         <p id="result-text">This takes a few seconds for a class.</p>
+        <progress class="meter" id="run-meter" max="1" hidden></progress>
         <p><a id="download" hidden>Download again</a></p>
         <p class="config-link" id="config-link" hidden><a id="config-download">Download these settings</a>
           <span class="sub">The settings of this exam (not the files or the password). Use <em>Load saved settings</em> to make the same kind of exam again.</span></p>

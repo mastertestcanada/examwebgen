@@ -239,6 +239,7 @@ function showQuiz() {
   status.textContent = { reading: ready ? tr("Reading the export…") : tr("The export will be read once the exam maker has loaded."),
     loading: tr("Reading the quiz…"), error: quiz.message }[quiz.state] || "";
   status.hidden = !status.textContent;
+  if (quiz.state !== "reading" && quiz.state !== "loading") $("read-meter").hidden = true;
   // the list of quizzes, when there is more than one
   const many = quiz.list.length > 1 && quiz.state !== "error";
   $("quiz-choice").hidden = !many;
@@ -1691,6 +1692,7 @@ async function generate(password) {
   $("big").className = "big-bubble working";
   $("big").textContent = "";
   $("result-title").textContent = tr("Making your exam…");
+  $("run-meter").hidden = true;
   $("result-text").textContent = tr("This takes a few seconds for a class, longer for large exams.");
   $("download").hidden = true;
   $("config-link").hidden = true;
@@ -1717,6 +1719,7 @@ async function generate(password) {
 $("back").addEventListener("click", () => { showStep(1); $("generate").focus(); });
 
 function finish(ok, data) {
+  $("run-meter").hidden = true;
   running = false;
   update();
   $("back").hidden = false;
@@ -1748,7 +1751,38 @@ function finish(ok, data) {
   a.click();
 }
 
+// "Making the answer cards: 120 of 300", with a bar; no count: a moving bar
+function meterText({ stage, done, total }) {
+  const pct = total > 0 ? Math.round(100 * done / total) : 0;
+  return {
+    reading: tr("Reading the export… {pct}%", { pct }),
+    exam: tr("Making the exam booklets: {done} of {total}", { done, total }),
+    "title page": tr("Making the title pages: {done} of {total}", { done, total }),
+    card: tr("Making the answer cards: {done} of {total}", { done, total }),
+    quiz: tr("Making the quizzes: {done} of {total}", { done, total }),
+    writing: tr("Putting the files together…"),
+  }[stage] || "";
+}
+
+function showMeter(bar, data) {
+  bar.hidden = false;
+  if (data.total > 0) { bar.max = data.total; bar.value = data.done; } else bar.removeAttribute("value");
+}
+
 worker.onmessage = ({ data }) => {
+  if (data.type === "meter") {
+    showMeter($("run-meter"), data);
+    const text = meterText(data);
+    if (text) $("result-text").textContent = text;
+    return;
+  }
+  if (data.type === "readmeter") {
+    if (quiz.state === "reading" || quiz.state === "loading") {
+      showMeter($("read-meter"), data);
+      if (data.stage === "reading") $("quiz-status").textContent = meterText(data);
+    }
+    return;
+  }
   if (data.type === "progress") {
     $("result-text").textContent = data.region
       ? tr("Downloading the {region} font ({mb} MB; only the first time)…", { region: cjkName(data.region), mb: data.mb }) : tr(data.text);

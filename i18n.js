@@ -587,6 +587,12 @@ const I18N = {
 "Load a Canvas, D2L or Akindi file to continue.": "Chargez un fichier Canvas, D2L ou Akindi pour continuer.",
 "A quiz export from Canvas or D2L Brightspace (.zip or .imscc), or a Word document (.docx) written for Akindi's importer.": "Un export de questionnaire Canvas ou D2L Brightspace (.zip ou .imscc), ou un document Word (.docx) rédigé pour l'importateur d'Akindi.",
 "Choose or drop the .zip, .imscc or .docx file": "Choisissez ou déposez le fichier .zip, .imscc ou .docx",
-"Choose a Canvas or D2L quiz export (.zip or .imscc) or a Word document (.docx) to continue.": "Choisissez un export de questionnaire Canvas ou D2L (.zip ou .imscc) ou un document Word (.docx) pour continuer."
+"Choose a Canvas or D2L quiz export (.zip or .imscc) or a Word document (.docx) to continue.": "Choisissez un export de questionnaire Canvas ou D2L (.zip ou .imscc) ou un document Word (.docx) pour continuer.",
+"Reading the export… {pct}%": "Lecture de l'export… {pct} %",
+"Making the exam booklets: {done} of {total}": "Création des cahiers d'examen : {done} sur {total}",
+"Making the title pages: {done} of {total}": "Création des pages de titre : {done} sur {total}",
+"Making the answer cards: {done} of {total}": "Création des cartes-réponses : {done} sur {total}",
+"Making the quizzes: {done} of {total}": "Création des questionnaires : {done} sur {total}",
+"Putting the files together…": "Assemblage des fichiers…"
 }
 };

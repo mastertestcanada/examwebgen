@@ -25,6 +25,21 @@ function linkExport(file) {
   if (!py.FS.analyzePath(link).exists) py.FS.symlink(dir + "/" + file.name, link);
 }
 
+// Progress of the slow steps (mtbuilder/progress.py): Python calls the hook, which passes it on to
+// the page at most every 120 ms (and always the last one of a step).
+let lastMeter = 0;
+function setProgress(kind) {
+  const module = py.pyimport("mtbuilder.progress");
+  module.hook = kind ? (stage, done, total) => {
+    const now = performance.now();
+    if (done >= total || now - lastMeter > 120) {
+      lastMeter = now;
+      post(kind, { stage, done, total });
+    }
+  } : null;
+  module.destroy();
+}
+
 function putFile(f) {
   const path = "/work/in/" + f.name;
   if (f.file) {
@@ -107,6 +122,7 @@ async function run({ files, argv, password, cjk }) {
   py.setStdout({ batched: (text) => post("log", { text, stream: "stdout" }) });
   py.setStderr({ batched: (text) => post("log", { text, stream: "stderr" }) });
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
+  setProgress("meter");
   for (const f of files) putFile(f);
   if (font) {
     const path = `/work/in/fonts/cjk/NotoSansCJK-${cjk}.ttf`;
@@ -140,11 +156,13 @@ async function run({ files, argv, password, cjk }) {
   }
   const seconds = (performance.now() - t0) / 1000;
   if (rc !== 0) {
+    setProgress(null);
     py.runPython("web_runner.reset()");
     post("failed", { seconds });
     return;
   }
   const result = py.runPython("web_runner.output_zip()").toJs();
+  setProgress(null);
   const name = result[0];
   const bytes = result[1];
   const seed = result[2];
@@ -164,7 +182,12 @@ function inspect({ name, file, lang }) {
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
   linkExport(file);
   py.globals.set("web_name", name);
-  post("quizzes", { name, result: JSON.parse(py.runPython("web_runner.quizzes(web_name)")) });
+  setProgress("readmeter");
+  try {
+    post("quizzes", { name, result: JSON.parse(py.runPython("web_runner.quizzes(web_name)")) });
+  } finally {
+    setProgress(null);
+  }
 }
 
 function summary({ name, number, file, lang, refresh }) {
@@ -176,7 +199,12 @@ function summary({ name, number, file, lang, refresh }) {
   }
   py.globals.set("web_name", name);
   py.globals.set("web_number", number);
-  post("summary", { name, number, refresh: !!refresh, result: JSON.parse(py.runPython("web_runner.summary(web_name, web_number)")) });
+  setProgress("readmeter");
+  try {
+    post("summary", { name, number, refresh: !!refresh, result: JSON.parse(py.runPython("web_runner.summary(web_name, web_number)")) });
+  } finally {
+    setProgress(null);
+  }
 }
 
 // Reads a class list as soon as it is chosen, with the page's class-list options. The file is
