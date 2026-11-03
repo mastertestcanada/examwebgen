@@ -954,9 +954,11 @@ const PAGE_DESC = {
     merged: "A blank page after the title page, so the first sheet starts on a new sheet of paper when printed double-sided. Needs Title page." },
   "pad-exam": { booklet: "Blank pages after each booklet, so the next student's booklet starts on a new sheet when printed double-sided.",
     single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided.",
+    merged: "A blank page after each quiz with an odd number of pages, so every quiz starts on a new sheet when printed double-sided.",
     duplex: false },
   "pad-answer-cards": { booklet: "A blank page after every answer card, so each card is on its own sheet when printed double-sided.",
     single: "A blank page after each quiz, so each starts on a new sheet when printed double-sided (the same as Pad exam here).",
+    merged: "A blank page after each quiz with an odd number of pages, so every quiz starts on a new sheet when printed double-sided (the same as Pad exam here).",
     duplex: false },
 };
 const layoutKind = () => (layout.id === "tabloid" ? "duplex" : layout.id === "booklet" ? "booklet" : layout.id.startsWith("merged") ? "merged" : "single");
