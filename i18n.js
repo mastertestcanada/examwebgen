@@ -63,6 +63,7 @@ function translatePage(root = document.body) {
 // language, the translation of each English text
 const I18N = {
 "fr": {
+"{n} numeric": "{n} numérique(s)",
 "Starting": "Démarrage",
 "· loading the exam maker (about 21 MB the first time)": "· chargement du générateur d'examens (environ 21 Mo la première fois)",
 "Choose files and layout": "Fichiers et mise en page",
