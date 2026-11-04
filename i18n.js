@@ -63,6 +63,9 @@ function translatePage(root = document.body) {
 // language, the translation of each English text
 const I18N = {
 "fr": {
+"Name box": "Case du nom",
+"Blank cards and sheets have a box for the student's name.": "Les cartes et feuilles vierges ont une case pour le nom de l'étudiant.",
+"Blank cards and sheets have seat boxes and bubbles.": "Les cartes et feuilles vierges ont des cases et des bulles pour la place.",
 "A blank page after each quiz with an odd number of pages, so every quiz starts on a new sheet when printed double-sided.": "Une page blanche après chaque questionnaire qui a un nombre impair de pages, pour que chaque questionnaire commence sur une nouvelle feuille en recto verso.",
 "A blank page after each quiz with an odd number of pages, so every quiz starts on a new sheet when printed double-sided (the same as Pad exam here).": "Une page blanche après chaque questionnaire qui a un nombre impair de pages, pour que chaque questionnaire commence sur une nouvelle feuille en recto verso (comme Pages blanches après l'examen ici).",
 "{n} numeric": "{n} numérique(s)",

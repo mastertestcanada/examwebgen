@@ -1209,7 +1209,11 @@ function options(run = false) {
   a.push(...printArgs(run));
   a.push(...pageArgs());
   a.push(...advArgs());
-  if (blanks() > 0) a.push("--blank-cards", String(blanks()));
+  if (blanks() > 0) {
+    a.push("--blank-cards", String(blanks()));
+    if (!$("blank-name").checked) a.push("--no-name");     // the student number identifies them
+    if (!$("blank-seat").checked) a.push("--no-seat");
+  }
   a.push(...poolArgs());
   return [...a, ...extras];
 }
@@ -1417,7 +1421,7 @@ const LAYOUT_OF = (size, columns) => {
 
 // the options the page has controls for (or that name files chosen on the page); a saved configuration's
 // other options are passed on as they are when generating
-const HANDLED_OPTIONS = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--max-items", "--title-map",
+const HANDLED_OPTIONS = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--no-name", "--no-seat", "--max-items", "--title-map",
   "--class-list", "--output", "-o", "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field",
   "--attendance-sort", "--attendance-orientation", "--margin", "--font", "--font-size", "--question-spacing", "--option-font",
   "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--csv-separator", "--option-font-size",
@@ -1477,6 +1481,8 @@ function loadConfig(name, textIn) {
   for (const r of document.querySelectorAll('input[name="mode"]')) r.checked = r.value === (variants ? "variants" : "unique");
   if (variants) $("variants").value = clamp($("variants"), Number(v));
   $("blanks").value = clamp($("blanks"), Number(got["--blank-cards"] || 0) || 0);
+  $("blank-name").checked = !got["--no-name"];
+  $("blank-seat").checked = !got["--no-seat"];
   extras = rest;
   // class-list options (checked against the class list once it is read)
   cls.id = got["--student-id-column"] || "";
