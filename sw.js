@@ -6,7 +6,7 @@
 
 const CORE = "mastertest-core-0.29.5";   // Python and its libraries: replaced with a new Pyodide
 const APP = "mastertest-app";                   // app-<version>.zip and fonts: old app versions removed
-const LONG_LIVED = /\/(pyodide|wheels)\/|\/fonts\/|\/app-[0-9.]+\.zip$/;
+const LONG_LIVED = /\/(pyodide|wheels)\/|\/fonts\/|\/pdfjs-[0-9.]+\/|\/app-[0-9.]+\.zip$/;
 
 self.addEventListener("install", () => self.skipWaiting());
 

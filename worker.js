@@ -102,8 +102,9 @@ async function deriveKey(password, headerHex) {
   return [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function run({ files, argv, password, cjk }) {
-  const t0 = performance.now();
+// The files and fonts of a run (Generate, Preview or Calculate exam lengths) put in /work/in; the
+// arguments to run with (an East Asian font adds --cjk-font).
+async function prepare({ files, argv, cjk }, meter) {
   const font = cjk ? await cjkFont(cjk) : null;
   // a supplied font chosen by name (--font, --option-font) is fetched now, into the app's fonts folder
   for (const [family, names] of Object.entries(build.fonts || {})) {
@@ -122,7 +123,7 @@ async function run({ files, argv, password, cjk }) {
   py.setStdout({ batched: (text) => post("log", { text, stream: "stdout" }) });
   py.setStderr({ batched: (text) => post("log", { text, stream: "stderr" }) });
   py.runPython("from mtbuilder import web_runner; web_runner.reset()");
-  setProgress("meter");
+  setProgress(meter);
   for (const f of files) putFile(f);
   if (font) {
     const path = `/work/in/fonts/cjk/NotoSansCJK-${cjk}.ttf`;
@@ -130,6 +131,13 @@ async function run({ files, argv, password, cjk }) {
     py.FS.writeFile(path, font);
     argv = [...argv, "--cjk-font", path];
   }
+  return { argv, font };
+}
+
+async function run(msg) {
+  const { files, password, cjk } = msg;
+  const t0 = performance.now();
+  const { argv, font } = await prepare(msg, "meter");
   py.globals.set("web_argv", py.toPy(argv));
   py.globals.set("web_password", password || "");
   // with a password the first attempt stops early to have the key derived (below): its messages are
@@ -169,6 +177,40 @@ async function run({ files, argv, password, cjk }) {
   py.runPython("web_runner.reset()");   // drop the student data from memory straight away
   const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
   self.postMessage({ type: "done", name, zip: buffer, seed, seconds }, [buffer]);
+}
+
+// Preview: one exam (the first student's, or a blank one), its PDFs sent back to be shown on the page.
+async function preview(msg) {
+  const { argv } = await prepare(msg, "previewmeter");
+  py.globals.set("web_argv", py.toPy(argv));
+  py.globals.set("web_which", msg.which);
+  let result;
+  try {
+    result = JSON.parse(py.runPython("web_runner.preview(web_argv, web_which)"));
+    if (!result.error) {
+      result = result.map((f) => {
+        const data = py.FS.readFile(f.file);
+        return { kind: f.kind, data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) };
+      });
+    }
+  } finally {
+    setProgress(null);
+    py.runPython("web_runner.reset()");   // the student's exam is not kept
+  }
+  if (result.error) post("preview", { id: msg.id, error: true });
+  else self.postMessage({ type: "preview", id: msg.id, files: result }, result.map((f) => f.data));
+}
+
+// Calculate exam lengths: every exam laid out, nothing written.
+async function lengths(msg) {
+  const { argv } = await prepare(msg, "lengthmeter");
+  py.globals.set("web_argv", py.toPy(argv));
+  try {
+    post("lengths", { id: msg.id, result: JSON.parse(py.runPython("web_runner.page_counts(web_argv)")) });
+  } finally {
+    setProgress(null);
+    py.runPython("web_runner.reset()");
+  }
 }
 
 // Reads an export as soon as it is chosen: which quizzes it holds, then what one of them holds.
@@ -232,6 +274,8 @@ self.onmessage = async (event) => {
     else if (msg.type === "summary") summary(msg);
     else if (msg.type === "classlist") classlist(msg);
     else if (msg.type === "run") await run(msg);
+    else if (msg.type === "preview") await preview(msg);
+    else if (msg.type === "lengths") await lengths(msg);
   } catch (err) {
     const text = String(err && err.message ? err.message : err);
     if (msg.type === "classlist") {
@@ -244,6 +288,10 @@ self.onmessage = async (event) => {
       return;
     }
     post("log", { text, stream: "stderr" });
+    if (msg.type === "preview" || msg.type === "lengths") {
+      post(msg.type, { id: msg.id, error: true, result: { error: 1 } });
+      return;
+    }
     post("failed", { seconds: 0 });
   }
 };

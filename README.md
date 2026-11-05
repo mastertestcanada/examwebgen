@@ -1,6 +1,6 @@
 # MasterTest Web
 
-Version 0.5.36 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
+Version 0.5.37 of MasterTest Web: [MasterTest Builder](https://github.com/mastertestcanada/examgenerator)
 built to run entirely in a web browser (MasterTest.ca). Teachers choose a Canvas
 quiz export or a Word document written for Akindi's importer (and a class list), set the options, and download a zip of exams,
 answer cards, the answer key and attendance sheet for marking with the
@@ -36,6 +36,7 @@ The first visit downloads about 21 MB, which the browser then caches.
 | `fonts/supplied/` | Open Sans and Source Code Pro, downloaded only when chosen. |
 | `pyodide/` | Pyodide (Python for the browser) with lxml, Pillow and fontTools (loaded only for an uploaded OpenType font). |
 | `wheels/` | reportlab, pypdf and segno from PyPI. |
+| `pdfjs-<version>/` | pdf.js (Mozilla, Apache License 2.0, `LICENSE` there) with its standard fonts (Foxit and Liberation, their licences there), which draws the pages of Preview; loaded only when a preview is opened. |
 | `fonts/` | Atkinson Hyperlegible for the page, and MasterTest Enclosed for its examples of the option letters (SIL Open Font License). |
 | `fonts/cjk/` | Noto Sans CJK for Simplified and Traditional Chinese, Japanese and Korean (SIL Open Font License, `fonts/cjk/OFL.txt`), converted to TrueType; the page downloads one only when a quiz has text in those languages. |
 | `build.json` | What the page loads, and the versions. |

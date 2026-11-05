@@ -336,6 +336,31 @@ section.paper { padding: 1rem 0; }
 .config-link { margin-top: .9rem !important; }
 .config-link .sub { display: block; color: var(--muted); font-size: .88rem; }
 
+/* Calculate exam lengths, in the recap */
+.recap .lengths { margin-top: .7rem; padding-top: .6rem; border-top: 1px solid rgba(255, 255, 255, .25); }
+.recap button.link.on-dark { color: var(--paper); font-weight: 700; text-decoration: underline; padding: 0; background: none; border: 0; font: inherit; font-weight: 700; cursor: pointer; }
+.recap button.link.on-dark:disabled { opacity: .5; cursor: default; text-decoration: none; }
+.lengths-state { margin-left: .6rem; opacity: .85; font-size: .92rem; }
+.recap .meter { background: rgba(255, 255, 255, .2); }
+.lengths-table { margin-top: .5rem; border-collapse: collapse; font-size: .95rem; }
+.lengths-table th { text-align: left; font-weight: 400; opacity: .75; padding: .15rem 1.4rem .15rem 0; }
+.lengths-table td { padding: .15rem 1.4rem .15rem 0; font-variant-numeric: tabular-nums; }
+.lengths-table tr.first td { border-top: 1px solid rgba(255, 255, 255, .2); }
+
+/* the preview */
+dialog#preview-dialog { border: 1.5px solid var(--ink); padding: 0; width: min(62rem, calc(100vw - 2rem)); max-width: none;
+  height: calc(100vh - 3rem); max-height: none; background: var(--paper); color: var(--ink); }
+dialog#preview-dialog[open] { display: flex; flex-direction: column; }
+dialog#preview-dialog::backdrop { background: rgba(15, 27, 45, .55); }
+.pv-head { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; padding: .8rem 1rem; border-bottom: 1px solid var(--rule); }
+.pv-head h2 { margin: 0; font-size: 1.15rem; margin-right: auto; }
+.pv-note { margin: 0; padding: .45rem 1rem; color: var(--muted); font-size: .88rem; border-bottom: 1px solid var(--rule); }
+.pv-pages { flex: 1; overflow: auto; background: var(--cell); padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.pv-pages canvas { background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .25); max-width: 100%; height: auto; }
+.pv-pages .pv-label { color: var(--muted); font-size: .82rem; align-self: center; margin-bottom: -.6rem; }
+.pv-pages .pv-wait { margin: auto; color: var(--muted); }
+.pv-pages .pv-error { margin: auto; max-width: 36rem; white-space: pre-wrap; color: var(--wrong); }
+
 /* the password dialog */
 dialog#pw-dialog { border: 1.5px solid var(--ink); padding: 1.4rem 1.5rem 1.2rem; max-width: min(30rem, calc(100vw - 2rem)); width: 100%;
   background: var(--paper); color: var(--ink); }
@@ -857,10 +882,20 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       <p class="recap-title" id="recap-title"></p>
       <p id="recap-who"></p>
       <p id="recap-how"></p>
+      <div class="lengths">
+        <button type="button" class="link on-dark" id="lengths-btn" disabled>Calculate exam lengths</button>
+        <span class="lengths-state" id="lengths-state" aria-live="polite"></span>
+        <progress class="meter" id="lengths-meter" max="1" hidden></progress>
+        <table class="lengths-table" id="lengths-table" hidden>
+          <thead><tr><th>Printed</th><th>Pages</th><th>How many</th></tr></thead>
+          <tbody id="lengths-rows"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="actions">
       <button type="button" class="primary" id="generate" disabled>Create Exam Packet</button>
+      <button type="button" class="secondary" id="preview-btn" disabled>Preview</button>
       <span class="why" id="why" aria-live="polite"></span>
     </div>
   </div>
@@ -883,6 +918,22 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       </div>
     </div>
   </div>
+
+  <dialog id="preview-dialog" aria-labelledby="preview-title">
+    <div class="pv-head">
+      <h2 id="preview-title">Preview</h2>
+      <span class="pv-pick" id="pv-who-pick" hidden>
+        <span class="seg" role="radiogroup" aria-label="Whose exam">
+          <label><input type="radio" name="pv-who" value="student" checked><span>First student</span></label>
+          <label><input type="radio" name="pv-who" value="blank"><span>Blank exam</span></label>
+        </span>
+      </span>
+      <span class="pv-pick seg" id="pv-files" role="radiogroup" aria-label="File" hidden></span>
+      <button type="button" class="secondary" id="pv-close">Close</button>
+    </div>
+    <p class="pv-note" id="pv-note"></p>
+    <div class="pv-pages" id="pv-pages" tabindex="0" aria-live="polite"></div>
+  </dialog>
 
   <dialog id="pw-dialog" aria-labelledby="pw-title">
     <form method="dialog" id="pw-form">

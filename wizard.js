@@ -1129,7 +1129,10 @@ function update() {
   const poolProblem = quizReady ? showPool() : "";
   const classIssue = classProblem() || printProblem();
   const ok = ready && !running && exportFile && quizReady && (hasClass || b > 0) && !poolProblem && !classIssue;
-  $("generate").disabled = !ok;
+  $("generate").disabled = !ok || !!tool;
+  $("preview-btn").disabled = !ok || !!tool;
+  $("lengths-btn").disabled = !ok || !!tool;
+  showLengthsStale();
   if (!exportFile) {
     // a link that opens the file chooser for the quiz export
     const load = document.createElement("button");
@@ -1724,7 +1727,7 @@ async function generate(password) {
     return;
   }
   const cjk = quizCjk() && cjkFonts[cjkChosen()] ? cjkChosen() : null;
-  worker.postMessage({ type: "run", files, argv: argv(password), password, cjk }, files.filter((f) => f.data).map((f) => f.data));
+  worker.postMessage({ type: "run", files, argv: [...argv(password), ...seedArgs()], password, cjk }, files.filter((f) => f.data).map((f) => f.data));
 }
 
 $("back").addEventListener("click", () => { showStep(1); $("generate").focus(); });
@@ -1732,6 +1735,11 @@ $("back").addEventListener("click", () => { showStep(1); $("generate").focus(); 
 function finish(ok, data) {
   $("run-meter").hidden = true;
   running = false;
+  if (ok) {
+    // the next packet gets other exams, as before; lengths counted for this one no longer apply
+    plannedSeed = String(crypto.getRandomValues(new Uint32Array(1))[0]);
+    showLengthsStale();
+  }
   update();
   $("back").hidden = false;
   if (!ok) {
@@ -1787,6 +1795,15 @@ worker.onmessage = ({ data }) => {
     if (text) $("result-text").textContent = text;
     return;
   }
+  if (data.type === "lengthmeter") {
+    showMeter($("lengths-meter"), data);
+    if (data.total > 0 && data.stage !== "reading") $("lengths-state").textContent = tr("Laying out the exams: {done} of {total}", data);
+    return;
+  }
+  if (data.type === "previewmeter") return;
+  if (data.type === "preview") { onPreview(data); return; }
+  if (data.type === "lengths") { onLengths(data); return; }
+  if (data.type === "log" && tool) { tool.log += data.text + "\n"; return; }
   if (data.type === "readmeter") {
     if (quiz.state === "reading" || quiz.state === "loading") {
       showMeter($("read-meter"), data);
@@ -1836,6 +1853,243 @@ fetch("build.json", { cache: "no-cache" }).then((r) => r.json()).then((b) => {
   $("version-top").textContent = b.version;
   if ($("version-line").textContent === "MasterTest Web") $("version-line").textContent = `MasterTest Web ${b.version}`;
 }).catch(() => {});
+// MasterTest Web: Preview (one exam, shown on the page) and Calculate exam lengths (every exam laid
+// out, its pages counted). Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
+// Both run in the worker like Generate, with the same files and options; nothing is downloaded, and
+// the worker forgets the files straight after.
+
+// The seed used for previews, lengths and the next Generate when the teacher has not set one, so
+// that the packet holds the exams the lengths were counted for (and the previewed first exam). A new
+// one is drawn after each Generate ("Make another exam" makes different exams, as before).
+let plannedSeed = String(crypto.getRandomValues(new Uint32Array(1))[0]);
+const seedArgs = () => ($("adv-seed").value.trim() ? [] : ["--seed", plannedSeed]);
+
+let tool = null;            // the preview or the lengths being made: { type, id, log }
+let toolId = 0;
+let lengthsKey = null;      // the settings the lengths shown were counted for
+
+// what the worker needs for a run: the files (read again from the disk), the fonts, the CJK region
+async function runFiles() {
+  const files = [{ name: exportFile.name, file: exportFile }];
+  if (classFile) files.push({ name: classFile.name, data: await classFile.arrayBuffer() });
+  if (aciMode() === "file") for (const f of aciFiles) files.push({ name: f.name, data: await f.arrayBuffer() });
+  files.push(...await fontFiles());
+  return files;
+}
+
+async function startTool(type, extra) {
+  const id = ++toolId;
+  tool = { type, id, log: "" };
+  update();
+  let files;
+  try {
+    files = await runFiles();
+  } catch (err) {
+    tool = null;
+    update();
+    return { error: String(err && err.message ? err.message : err) };
+  }
+  const cjk = quizCjk() && cjkFonts[cjkChosen()] ? cjkChosen() : null;
+  worker.postMessage({ type, id, files, argv: [...argv(""), ...seedArgs()], cjk, ...extra },
+    files.filter((f) => f.data).map((f) => f.data));
+  return null;
+}
+
+// the error lines of a failed preview or count, without "ERROR:"
+function toolErrors(log) {
+  const errors = log.split("\n").filter((l) => /^(ERROR:|ERREUR :)/.test(l));
+  return (errors.length ? errors.join("\n") : log).replace(/^(ERROR: |ERREUR : )/gm, "").trim();
+}
+
+// ------------------------------------------------------------------ Calculate exam lengths
+
+const settingsKey = () => JSON.stringify([argv(""), ...seedArgs(), classFile && [classFile.name, classFile.size, classFile.lastModified]]);
+
+function showLengthsStale() {
+  if (lengthsKey === null || tool) return;
+  if (lengthsKey !== settingsKey()) {
+    lengthsKey = null;
+    $("lengths-table").hidden = true;
+    $("lengths-state").textContent = tr("Settings changed: calculate again.");
+  }
+}
+
+$("lengths-btn").addEventListener("click", async () => {
+  $("lengths-table").hidden = true;
+  $("lengths-state").textContent = tr("Laying out every exam…");
+  $("lengths-meter").hidden = true;
+  lengthsKey = null;
+  const failed = await startTool("lengths");
+  if (failed) $("lengths-state").textContent = failed;
+});
+
+function onLengths(data) {
+  if (data.id !== toolId) return;       // an earlier request, overtaken
+  const key = settingsKey();
+  const log = tool ? tool.log : "";
+  tool = null;
+  $("lengths-meter").hidden = true;
+  update();
+  if (data.error || !data.result || data.result.error) {
+    $("lengths-state").textContent = tr("The lengths could not be calculated: {why}", { why: toolErrors(log) || tr("an unknown error") });
+    return;
+  }
+  const r = data.result;
+  const rows = [];
+  const add = (label, found, unit) => {
+    Object.entries(found).forEach(([pages, n], i) => {
+      const tr_ = document.createElement("tr");
+      if (i === 0 && rows.length) tr_.className = "first";
+      for (const text of [i === 0 ? label : "", trn(Number(pages), "{n} page", "{n} pages"), trn(n, unit[0], unit[1])]) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        tr_.append(td);
+      }
+      rows.push(tr_);
+    });
+  };
+  const what = { booklet: tr("Exam booklet"), merged: tr("Merged quiz"), single: tr("Single-page quiz") }[r.kind];
+  add(what, r.exam, ["{n} exam", "{n} exams"]);
+  if (r.cards) add(tr("Answer card"), r.cards, ["{n} student", "{n} students"]);
+  $("lengths-rows").replaceChildren(...rows);
+  $("lengths-table").hidden = false;
+  const total = Object.entries(r.exam).reduce((a, [p, n]) => a + Number(p) * n, 0)
+    + Object.entries(r.cards || {}).reduce((a, [p, n]) => a + Number(p) * n, 0);
+  $("lengths-state").textContent = tr("{pages} pages in all, title pages and blank pages included.", { pages: total });
+  lengthsKey = key;
+}
+
+// ------------------------------------------------------------------ Preview
+
+let pdfjs = null;           // pdf.js, loaded the first time a preview is shown
+const PDFJS = "pdfjs-4.10.38/";
+let preview = { files: [], shown: 0, which: "student" };
+
+async function loadPdfjs() {
+  if (!pdfjs) {
+    pdfjs = await import("./" + PDFJS + "pdf.min.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.mjs";
+  }
+  return pdfjs;
+}
+
+const FILE_NAMES = { title: "Title pages", exam: "Exam", quiz: "Quiz", card: "Answer card" };
+
+function previewWhich() {
+  if (!classFile) return "blank";
+  if (blanks() <= 0) return "student";
+  return document.querySelector('input[name="pv-who"]:checked').value;
+}
+
+function previewNote() {
+  const who = previewWhich() === "blank" ? tr("a blank exam") : tr("the first student's exam");
+  const variants = classFile && mode() === "variants";
+  $("pv-note").textContent = tr("This is {who}, made with your settings. {others}", {
+    who, others: variants ? tr("Only the first variant is shown.")
+      : tr("Every other exam has the same layout, with the questions and options in its own order."),
+  });
+}
+
+async function openPreview() {
+  $("pv-who-pick").hidden = !(classFile && blanks() > 0);
+  $("pv-files").replaceChildren();
+  $("preview-dialog").showModal();
+  previewNote();
+  await makePreview();
+}
+
+async function makePreview() {
+  preview = { files: [], shown: 0, which: previewWhich() };
+  $("pv-files").replaceChildren();
+  $("pv-files").hidden = true;
+  const wait = document.createElement("p");
+  wait.className = "pv-wait";
+  wait.textContent = tr("Making the preview…");
+  $("pv-pages").replaceChildren(wait);
+  const failed = await startTool("preview", { which: preview.which });
+  if (failed) showPreviewError(failed);
+}
+
+function showPreviewError(text) {
+  const p = document.createElement("p");
+  p.className = "pv-error";
+  p.textContent = tr("The preview could not be made: {why}", { why: text });
+  $("pv-pages").replaceChildren(p);
+}
+
+async function onPreview(data) {
+  if (data.id !== toolId) return;
+  const log = tool ? tool.log : "";
+  tool = null;
+  update();
+  if (!$("preview-dialog").open) return;
+  if (data.error) { showPreviewError(toolErrors(log) || tr("an unknown error")); return; }
+  preview.files = data.files;
+  const tabs = data.files.map((f, i) => {
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "radio"; input.name = "pv-file"; input.value = String(i); input.checked = i === 0;
+    input.addEventListener("change", () => showFile(i));
+    const span = document.createElement("span");
+    span.textContent = tr(FILE_NAMES[f.kind]);
+    label.append(input, span);
+    return label;
+  });
+  $("pv-files").replaceChildren(...(tabs.length > 1 ? tabs : []));
+  $("pv-files").hidden = tabs.length < 2;
+  await showFile(0);
+}
+
+async function showFile(i) {
+  preview.shown = i;
+  const file = preview.files[i];
+  if (!file) return;
+  const wait = document.createElement("p");
+  wait.className = "pv-wait";
+  wait.textContent = tr("Drawing the pages…");
+  $("pv-pages").replaceChildren(wait);
+  let doc;
+  try {
+    const lib = await loadPdfjs();
+    // pdf.js takes the bytes over: give it a copy, so switching back to this file works
+    doc = await lib.getDocument({ data: new Uint8Array(file.data.slice(0)), standardFontDataUrl: PDFJS + "standard_fonts/" }).promise;
+  } catch (err) {
+    showPreviewError(String(err && err.message ? err.message : err));
+    return;
+  }
+  const area = $("pv-pages");
+  const width = Math.min(area.clientWidth - 32, 900);
+  const scale = window.devicePixelRatio || 1;
+  const out = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    if (preview.shown !== i || !$("preview-dialog").open) return;     // another file was chosen meanwhile
+    const page = await doc.getPage(n);
+    const base = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: (width / base.width) * scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    canvas.style.width = Math.round(viewport.width / scale) + "px";
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", tr("Page {n} of {of}", { n, of: doc.numPages }));
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    const label = document.createElement("p");
+    label.className = "pv-label";
+    label.textContent = tr("Page {n} of {of}", { n, of: doc.numPages });
+    out.push(label, canvas);
+    if (n === 1) area.replaceChildren(label, canvas); else area.append(label, canvas);
+  }
+  doc.destroy();
+}
+
+$("preview-btn").addEventListener("click", openPreview);
+$("pv-close").addEventListener("click", () => $("preview-dialog").close());
+$("preview-dialog").addEventListener("close", () => {
+  preview = { files: [], shown: 0, which: "student" };   // the student's exam is not kept
+  $("pv-pages").replaceChildren();
+  $("pv-files").replaceChildren();
+});
+for (const r of document.querySelectorAll('input[name="pv-who"]')) r.addEventListener("change", () => { previewNote(); makePreview(); });
 // MasterTest Web, the page's language. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ the page's language
 
