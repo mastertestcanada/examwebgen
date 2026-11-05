@@ -626,6 +626,7 @@ const PO = {
   spacing: ["po-spacing", "--question-spacing"],
   optionSize: ["po-option-size", "--option-font-size"], calc: ["po-calc", "--calculated-instructions"],
   fill: ["po-fill", "--fill-blank-instructions"], blank: ["po-blank", "--fill-blank-text"],
+  multi: ["po-multi", "--multiple-answer-instructions"],
   width: ["po-width", "--answer-width"], shading: ["po-shading", "--cell-shading"],
 };
 const SIDES = ["left", "right", "top", "bottom"];
@@ -653,6 +654,7 @@ const STANDARD = {
     fr: (comma) => `Écrivez votre réponse dans les cases de la carte-réponse : un chiffre, un signe moins ou ${comma ? "une virgule" : "un point décimal"} par case.`,
   },
   fill: { en: () => "Write your answer in the box on the answer card.", fr: () => "Écrivez votre réponse dans la case de la carte-réponse." },
+  multi: { en: () => "Select all that apply.", fr: () => "Plusieurs réponses possibles." },
 };
 const standardText = (which) => STANDARD[which][printLang](decimalMark() === "comma");
 
@@ -1017,6 +1019,7 @@ function showPrintDefaults() {
   $("po-font-size-hint").textContent = tr(merged ? "points (default 9 on merged sheets)" : "points (default 11)");
   $("po-calc").placeholder = merged ? tr("(none on merged sheets: the header says how to answer)") : standardText("calc");
   $("po-fill").placeholder = merged ? tr("(none on merged sheets: the header says how to answer)") : standardText("fill");
+  $("po-multi").placeholder = standardText("multi");
   const iso = paper === "iso";
   const w = layout.id === "merged1" ? "180pt" : layout.id === "merged2" ? "90pt" : iso ? "91pt" : "95pt";
   $("po-width").placeholder = w;
@@ -1148,7 +1151,7 @@ function update() {
 const TUNE_GROUPS = {
   text: ["--font", "--option-font", "--font-size", "--margin", "--margin-left", "--margin-right", "--margin-top", "--margin-bottom",
     "--question-spacing", "--option-font-size", "--option-dot", "--option-letters", "--option-columns", "--show-points",
-    "--no-quiz-instructions", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text"],
+    "--no-quiz-instructions", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--multiple-answer-instructions"],
   answer: ["--answer-width", "--cell-shading", "--answer-card-instructions", "--essay-space", "--essay-space-all", "--no-option-pad",
     "--question-rules"],
   lang: ["--print-language", "--decimal-mark", "--csv-separator"],
@@ -1425,7 +1428,7 @@ const HANDLED_OPTIONS = new Set(["--page-size", "--columns", "--quiz", "--varian
   "--class-list", "--output", "-o", "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field",
   "--attendance-sort", "--attendance-orientation", "--margin", "--font", "--font-size", "--question-spacing", "--option-font",
   "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--csv-separator", "--option-font-size",
-  "--option-columns", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--margin-left",
+  "--option-columns", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--multiple-answer-instructions", "--margin-left",
   "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading", "--answer-card-instructions",
   "--page-options", "--qr-quality", "--seed", "--password", "--ignore-item-banks", "--randomize-seats", "--no-option-pad",
   "--show-points", "--no-quiz-instructions", "--option-dot", "--essay-space", "--essay-space-all", "--question-rules"]);

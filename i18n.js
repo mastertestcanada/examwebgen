@@ -559,6 +559,7 @@ const I18N = {
 "Suppress quiz instructions": "Omettre les consignes du questionnaire",
 "Calculated question instructions:": "Consigne des questions calculées :",
 "Fill-in-the-blank instructions:": "Consigne des textes à trous :",
+"Multiple-answer instructions:": "Consigne des questions à réponses multiples :",
 "Answer area": "Zone de réponse",
 "Answer width, shading, essay space, answer card instructions, bubbles, rules between questions": "Largeur des réponses, ombrage, espace des développements, consignes de la carte-réponse, bulles, lignes entre les questions",
 "Same number of bubbles for every question": "Même nombre de bulles pour chaque question",
