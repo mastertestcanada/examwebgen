@@ -623,7 +623,7 @@ for (const o of document.querySelectorAll('input[name="orient"]')) o.addEventLis
 
 const PO = {
   fontSize: ["po-font-size", "--font-size"],
-  spacing: ["po-spacing", "--question-spacing"],
+  spacing: ["po-spacing", "--question-spacing"], optionSpacing: ["po-option-spacing", "--option-spacing"],
   optionSize: ["po-option-size", "--option-font-size"], calc: ["po-calc", "--calculated-instructions"],
   fill: ["po-fill", "--fill-blank-instructions"], blank: ["po-blank", "--fill-blank-text"],
   multi: ["po-multi", "--multiple-answer-instructions"],
@@ -708,7 +708,7 @@ function printProblem() {
   if (os && !(Number(os) >= 4 && Number(os) <= 72)) return tr("Fine-tuning: the option font size must be from 4 to 72 points.");
   const cols = $("po-option-columns").value.trim();
   if (cols && !(Number.isInteger(Number(cols)) && Number(cols) >= 1 && Number(cols) <= 6)) return tr("Fine-tuning: option columns must be from 1 to 6.");
-  const lengths = [["po-spacing", "question spacing"], ["po-width", "answer field width"],
+  const lengths = [["po-spacing", "question spacing"], ["po-option-spacing", "space before options"], ["po-width", "answer field width"],
     ...(marginMode() === "all" ? [["po-margin", "margins"]] : SIDES.map((side) => ["po-margin-" + side, side + " margin"]))];
   for (const [id, what] of lengths) {
     const v = $(id).value.trim();
@@ -1150,7 +1150,7 @@ function update() {
 // section is set to, so the sections can stay closed
 const TUNE_GROUPS = {
   text: ["--font", "--option-font", "--font-size", "--margin", "--margin-left", "--margin-right", "--margin-top", "--margin-bottom",
-    "--question-spacing", "--option-font-size", "--option-dot", "--option-letters", "--option-columns", "--show-points",
+    "--question-spacing", "--option-spacing", "--option-font-size", "--option-dot", "--option-letters", "--option-columns", "--show-points",
     "--no-quiz-instructions", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--multiple-answer-instructions"],
   answer: ["--answer-width", "--cell-shading", "--answer-card-instructions", "--essay-space", "--essay-space-all", "--no-option-pad",
     "--question-rules"],
@@ -1426,7 +1426,7 @@ const LAYOUT_OF = (size, columns) => {
 // other options are passed on as they are when generating
 const HANDLED_OPTIONS = new Set(["--page-size", "--columns", "--quiz", "--variants", "--blank-cards", "--no-name", "--no-seat", "--max-items", "--title-map",
   "--class-list", "--output", "-o", "--student-id-column", "--add-qr-field", "--seat-labels", "--add-attendance-field",
-  "--attendance-sort", "--attendance-orientation", "--margin", "--font", "--font-size", "--question-spacing", "--option-font",
+  "--attendance-sort", "--attendance-orientation", "--margin", "--font", "--font-size", "--question-spacing", "--option-spacing", "--option-font",
   "--option-letters", "--cjk-region", "--print-language", "--decimal-mark", "--csv-separator", "--option-font-size",
   "--option-columns", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--multiple-answer-instructions", "--margin-left",
   "--margin-right", "--margin-top", "--margin-bottom", "--answer-width", "--cell-shading", "--answer-card-instructions",

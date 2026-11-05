@@ -729,6 +729,8 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
             <p class="pool-of grid-note">The font and font size replace the fonts and font sizes used in the original quiz.</p>
             <label for="po-spacing">Question spacing:</label>
             <span><input type="text" id="po-spacing" class="text short" placeholder="automatic" spellcheck="false"> <span class="pool-of">space between questions, e.g. 12pt, 0.25in, 5mm (default 0.9 × the font size)</span></span>
+            <label for="po-option-spacing">Space before options:</label>
+            <span><input type="text" id="po-option-spacing" class="text short" placeholder="automatic" spellcheck="false"> <span class="pool-of">space between a question's text and its options A, B, C…, e.g. 8pt, 3mm (default 0.45 × the font size; 0.2 × on merged sheets)</span></span>
             <label for="po-option-font">Option font:</label>
             <span><select id="po-option-font" class="select font-pick" data-default="same"></select> <input type="file" id="po-option-font-file" accept=".ttf,.otf,.ttc" multiple hidden> <span class="pool-of" id="po-option-font-state">for the option letters A, B, C…</span></span>
             <span class="grid-label">Enclosed letters:</span>
