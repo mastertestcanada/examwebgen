@@ -12,7 +12,7 @@
 <header class="site"><a href="/"><img src="/mastertest-logo.png" alt="MasterTest.ca"></a></header>
 <main>
 <h1>MasterTest Marker – Privacy Policy</h1>
-<p class="meta">Effective date: October 17, 2026</p>
+<p class="meta">Effective date: November 5, 2026</p>
 
 <p>MasterTest Marker (“the app”) is published by Jonathan Graham (“MasterTest”, “we”). The app lets teachers mark printed MasterTest answer cards with their phone’s camera. This policy explains what information the app handles and where it goes.</p>
 
@@ -32,20 +32,22 @@
 <p>The app uses the camera only while a scanning screen is open, to read QR codes and answer cards. Only a straightened image of each card is kept, with the scan it belongs to, inside the app’s encrypted storage; the camera photo itself is not kept. Nothing is added to your photo gallery.</p>
 
 <h2>Information you choose to send</h2>
-<p>The app can prepare two kinds of email. In both cases it opens your own mail app with the message filled in; nothing is sent until you press Send, and the message is delivered by your mail provider, not by us.</p>
+<p>The app can prepare three kinds of email. In each case it opens your own mail app with the message filled in; nothing is sent until you press Send, and the message is delivered by your mail provider, not by us.</p>
 <ul>
 <li><strong>Grades.</strong> A CSV file of student names, student numbers and scores, sent to the address you enter (usually your own, to import into Canvas). We do not receive it.</li>
-<li><strong>Correction reports.</strong> When you correct a card by hand you may send the correction to <a href="mailto:support@mastertest.ca">support@mastertest.ca</a>, to help us improve card reading. The report contains the exam title, the card’s serial number, the answers the app read, your corrections, and an image of the card with the student’s name, number, seat and QR code blacked out. No original photo is ever attached; the app does not keep one. The report is attached as a single file encrypted on your phone so that only MasterTest can open it; your mail provider and anyone else who sees the email cannot read it, and the email’s subject does not name the exam.</li>
+<li><strong>Student-number reports.</strong> When the app cannot read some columns of a student number from the bubbles of a blank card, you may send just those columns to <a href="mailto:support@mastertest.ca">support@mastertest.ca</a>, to help us improve number reading: for each such column, an image of its bubbles and of the digit written above it. The rest of the number, the student’s name, seat and answers are not included; at most the digits of the unreadable columns can be seen. The card is identified only by its serial number. Like a correction report, it also says which model of phone and which system version sent it and what the card was read from (a photo, the camera’s live view or an imported scan, with its size in pixels), and it is encrypted on your phone.</li>
+<li><strong>Correction reports.</strong> When you correct a card by hand you may send the correction to <a href="mailto:support@mastertest.ca">support@mastertest.ca</a>, to help us improve card reading. The report contains the exam title, the card’s serial number, the answers the app read, your corrections, an image of the card with the student’s name, number, seat and QR code blacked out, the model of your phone and its system version (for example “iOS 18.6, iPhone 11”), and what the card was read from (a photo, the camera’s live view or an imported scan) with its size in pixels. The report does not include your phone’s serial number, the app’s install id or anything else that identifies your phone or you. No original photo is ever attached; the app does not keep one. The report is attached as a single file encrypted on your phone so that only MasterTest can open it; your mail provider and anyone else who sees the email cannot read it, and the email’s subject does not name the exam.</li>
 </ul>
-<p>We use correction reports only to diagnose and improve how the app reads cards. We do not sell them or share them with anyone. We delete them once they are no longer needed for that purpose, and in any case within 12 months. To have a report you sent deleted sooner, email <a href="mailto:support@mastertest.ca">support@mastertest.ca</a>.</p>
+<p>We use correction and student-number reports only to diagnose and improve how the app reads cards. We do not sell them or share them with anyone. We delete them once they are no longer needed for that purpose, and in any case within 12 months. To have a report you sent deleted sooner, email <a href="mailto:support@mastertest.ca">support@mastertest.ca</a>.</p>
 
 <h2>MasterTest Pro and licence checks</h2>
-<p>The free version needs no connection. When you activate a licence code or a MasterTest Pro subscription, and about once a week after that, the app checks it with the MasterTest licence service, which runs on Google’s servers (Google Apps Script). Each check sends:</p>
+<p>The free version needs no connection. When you activate a licence code or a MasterTest Pro subscription, and about once a week after that (once a day for an institution’s licence code), the app checks it with the MasterTest licence service, which runs on Google’s servers (Google Apps Script). Each check sends:</p>
 <ul>
-<li>a random install id that the app creates for itself, which identifies this installation of the app and nothing else;</li>
-<li>the licence code you entered, or the Google Play purchase token of your subscription.</li>
+<li>an install id for this app on this phone, which identifies nothing else: on Android a one-way code made from Android’s own id for this app (different for every app), on iPhone a random id kept in the iPhone’s Keychain. It stays the same if you reinstall the app on the same phone, so a reinstall does not use up another of a code’s phones; no other app or website can match it to you;</li>
+<li>the licence code you entered, or the Google Play purchase token of your subscription;</li>
+<li>only for an institution’s licence code (a code beginning MTI), and only once, when you first activate it on this phone: the name or staff ID you enter, so that the institution can have your phone removed from its licence when you leave.</li>
 </ul>
-<p>The licence service records, for each code or subscription, the install ids of the phones using it (so a code can be limited to a number of phones), its expiry date and the date of the last check. It asks Google Play whether a subscription is active; payment is handled entirely by Google Play under Google’s privacy policy, and we never see your payment details. We use this information only to provide MasterTest Pro and to prevent codes from being shared beyond their limit. We keep it while the licence or subscription is in use and for 12 months after it ends. To have it deleted sooner, email <a href="mailto:support@mastertest.ca">support@mastertest.ca</a> with your code or Google Play order number.</p>
+<p>The licence service records, for each code or subscription, the install ids of the phones using it (so a code can be limited to a number of phones), its expiry date, and the date of each phone’s last check; for an institution’s code, also each phone’s name or staff ID. Only MasterTest and, on request, the institution that bought the code see these names. It asks Google Play whether a subscription is active; payment is handled entirely by Google Play under Google’s privacy policy, and we never see your payment details. We use this information only to provide MasterTest Pro and to prevent codes from being shared beyond their limit. We keep it while the licence or subscription is in use and for 12 months after it ends, except names and staff IDs, which are deleted as soon as the phone stops using the code: when you remove it in the app (MasterTest Pro &gt; Remove this phone from the licence), when the institution has it removed, after 90 days without a check, or when the code ends. To have it deleted sooner, email <a href="mailto:support@mastertest.ca">support@mastertest.ca</a> with your code or Google Play order number.</p>
 
 <h2>Backups</h2>
 <p>The app’s data is never included in Android’s backup to your Google account and is not copied when you move to a new phone. Its encryption key exists only in your phone’s secure keystore, so the stored files cannot be read anywhere else. If you change phones, export the grades you need first. You can also turn on an app lock in Settings, so the phone’s fingerprint, face or PIN is needed to open the app.</p>
@@ -58,6 +60,7 @@
 <li>Delete an exam in the app to remove it with all its scans and card images, or use Settings to delete exams automatically 30, 90, 180 or 365 days after they were added, or to delete all data at once.</li>
 <li>Uninstall the app to remove everything it stored.</li>
 <li>Email <a href="mailto:support@mastertest.ca">support@mastertest.ca</a> to have a correction report you sent us deleted.</li>
+<li>To remove this phone from a licence code, with its name or staff ID if it gave one, use MasterTest Pro &gt; Remove this phone from the licence.</li>
 </ul>
 <p>Step-by-step instructions: <a href="/privacy/delete/">Deleting your data</a>.</p>
 

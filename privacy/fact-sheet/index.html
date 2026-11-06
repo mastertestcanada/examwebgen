@@ -12,12 +12,12 @@
 <header class="site"><a href="/"><img src="/mastertest-logo.png" alt="MasterTest.ca"></a></header>
 <main>
 <h1>MasterTest – Privacy and Security Fact Sheet</h1>
-<p class="meta">Updated October 18, 2026</p>
+<p class="meta">Updated November 5, 2026</p>
 
 <h2>Summary</h2>
 <p>Student information handled with MasterTest stays on the teacher’s own computer and phone. MasterTest has no accounts, no analytics and no cloud storage of class lists, exams or grades, so MasterTest (the company) holds no student records.</p>
-<p>MasterTest has three parts. <strong>MasterTest Builder</strong> (a desktop program) and <strong>MasterTest Web</strong> (the same program running entirely in the browser) turn a Canvas quiz export and a class list into printed exams with answer cards. <strong>MasterTest Marker</strong> (an Android app) scans the completed cards with the phone’s camera, marks them and produces a grade file the teacher imports into Canvas.</p>
-<p>This sheet describes MasterTest Marker 0.4.11 and MasterTest Builder and Web 0.4.14, for institutions completing a Privacy Impact Assessment under FIPPA, MFIPPA or equivalent legislation.</p>
+<p>MasterTest has three parts. <strong>MasterTest Builder</strong> (a desktop program) and <strong>MasterTest Web</strong> (the same program running entirely in the browser) turn a quiz (exported from Canvas or D2L Brightspace, or a Word document) and a class list into printed exams with answer cards. <strong>MasterTest Marker</strong> (an Android app) scans the completed cards with the phone’s camera, marks them and produces a grade file the teacher imports into Canvas or Brightspace.</p>
+<p>This sheet describes MasterTest Marker 0.5.32 and MasterTest Builder and Web 0.5.37, for institutions completing a Privacy Impact Assessment under FIPPA, MFIPPA or equivalent legislation.</p>
 
 <h2>Where student data is</h2>
 <p>The personal information involved is the student’s name, student number and seat (as the teacher chooses), their answers, and the score MasterTest Marker calculates.</p>
@@ -29,7 +29,7 @@
 <tr><td>Printed answer key</td><td>Correct answers</td><td>Optional password: the key’s QR code is encrypted and needs the password to load</td><td>The institution’s practice</td></tr>
 <tr><td>Teacher’s phone (MasterTest Marker)</td><td>Exams, straightened card images, names, numbers, answers, scores (camera photos are not kept)</td><td>AES-256-GCM encryption with a key in the phone’s Android Keystore; app-private storage; optional app lock</td><td>Deleted by the teacher, by automatic deletion, or when the app is uninstalled</td></tr>
 <tr><td>Grade file (CSV)</td><td>Names, student numbers, scores</td><td>Sent only when the teacher chooses, through the teacher’s own mail app, to an address the teacher enters</td><td>The recipient’s mailbox; the phone’s copy is removed after an hour</td></tr>
-<tr><td>Support report (optional)</td><td>Answers read, corrections, card image with name, number, seat and QR code blacked out</td><td>Sent only when the teacher chooses; never includes a camera photo or the student’s name or number; encrypted on the phone so only MasterTest can open it</td><td>Deleted by MasterTest once the issue is resolved, and within 12 months</td></tr>
+<tr><td>Support report (optional)</td><td>Answers read, corrections, card image with name, number, seat and QR code blacked out; or, for a student number the app could not read, only the unreadable columns (their bubbles and the digit written above); the phone’s model and system version</td><td>Sent only when the teacher chooses; never includes a camera photo, the student’s name or a whole student number; encrypted on the phone so only MasterTest can open it</td><td>Deleted by MasterTest once the issue is resolved, and within 12 months</td></tr>
 </tbody>
 </table></div>
 
@@ -57,14 +57,14 @@
 <thead><tr><th>Flow</th><th>Contents</th><th>Initiated by</th><th>Recipient</th></tr></thead>
 <tbody>
 <tr><td>Grade file</td><td>Names, student numbers, scores</td><td>The teacher, through their own mail app</td><td>The address the teacher enters (usually their institutional mailbox, for Canvas import)</td></tr>
-<tr><td>Support report</td><td>Card image with the student’s details blacked out, and the corrections, in one file encrypted for MasterTest (RSA-OAEP and AES-256-GCM)</td><td>The teacher, through their own mail app</td><td>support@mastertest.ca</td></tr>
-<tr><td>Licence check</td><td>A random install id created by the app, and the licence code or Google Play purchase token</td><td>The app, when Pro is activated and about weekly</td><td>MasterTest’s licence service (Google Apps Script and Google Sheets, operated by MasterTest)</td></tr>
+<tr><td>Support report</td><td>Card image with the student’s details blacked out, and the corrections (or only the unreadable columns of a student number), with the phone’s model and system version, in one file encrypted for MasterTest (RSA-OAEP and AES-256-GCM)</td><td>The teacher, through their own mail app</td><td><a href="mailto:support@mastertest.ca">support@mastertest.ca</a></td></tr>
+<tr><td>Licence check</td><td>An install id for the app on that phone (no other app or site can match it), and the licence code or Google Play purchase token; for an institution’s code (MTI), also the teacher’s name or staff ID, once, when the phone joins</td><td>The app, when Pro is activated and about weekly (daily for an institution’s code)</td><td>MasterTest’s licence service (Google Apps Script and Google Sheets, operated by MasterTest)</td></tr>
 <tr><td>Subscription purchase</td><td>Payment details</td><td>The teacher, in Google Play</td><td>Google Play, under Google’s privacy policy; MasterTest never sees payment details</td></tr>
 </tbody>
 </table></div>
-<p><strong>What MasterTest (the company) receives:</strong> support reports a teacher chooses to send, and licence-check records (install ids, codes or order ids, dates). It does not receive class lists, exams, grades or scanned cards.</p>
+<p><strong>What MasterTest (the company) receives:</strong> support reports a teacher chooses to send, and licence-check records (install ids, codes or order ids, dates; for institution codes, each phone’s teacher name or staff ID, deleted when the phone leaves the code). It does not receive class lists, exams, grades or scanned cards.</p>
 <p><strong>No analytics, advertising or tracking.</strong> The app contains no analytics, advertising or crash-reporting libraries and has no user accounts. MasterTest Web loads its program and fonts from mastertest.ca (hosted on GitHub Pages) but sends nothing back.</p>
-<p><strong>Where data is hosted.</strong> Student data is held only on the institution’s or teacher’s own devices. Licence records, which contain no student information, are stored in Google’s data centres. Email delivery depends on the teacher’s and the recipient’s mail providers.</p>
+<p><strong>Where data is hosted.</strong> Student data is held only on the institution’s or teacher’s own devices. Licence records, which contain no student information (for institution codes, teachers’ names or staff IDs), are stored in Google’s data centres. Email delivery depends on the teacher’s and the recipient’s mail providers.</p>
 <p><strong>Printed QR codes.</strong> A class-list card’s QR code carries the student’s name and student number (needed to match the grade to Canvas), the card’s serial, and any extra class-list columns the teacher selects. The name and number are also printed on the card, so the QR code reveals nothing beyond the printed text unless extra columns are added; teachers should add only what they need. Blank cards carry no student details at all: the student writes their name and fills in their number.</p>
 
 <h2>Recommended settings for institutions</h2>
@@ -74,6 +74,7 @@
 <li>Have teachers send grade files to their institutional email address, not a personal one.</li>
 <li>Password-protect answer keys when printing them, and add extra class-list columns to cards only when needed.</li>
 <li>At the end of a term or when a phone changes hands, use <strong>Delete all data</strong>.</li>
+<li>For licences, choose the kind that fits: an <strong>institution code (MTI)</strong> asks each teacher for a name or staff ID once, so you can have one person’s phone removed when they leave; a <strong>group code (MTG)</strong> asks for nothing, and a seat frees itself after 90 days without use. Both end on the date in your agreement. A teacher can also remove their own phone from a licence in the app.</li>
 </ul>
 <p>If your institution needs these settings enforced centrally on managed phones, contact us: MasterTest Marker can support Android managed configurations for this.</p>
 
