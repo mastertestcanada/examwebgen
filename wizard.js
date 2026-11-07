@@ -93,6 +93,14 @@ function setPaper(value) {
   }
   setMergedAvailable(quiz.state === "ready" ? quiz.summary : null);
   showPrintDefaults();
+  showLayoutChosen();
+}
+
+// the cards carry the name and a picture; the chosen layout's description is under them
+function showLayoutChosen() {
+  const name = document.createElement("strong");
+  name.textContent = layoutName(layout) + ": ";
+  $("layout-chosen").replaceChildren(name, document.createTextNode(text(layout.desc)));
 }
 for (const r of document.querySelectorAll('input[name="paper"]')) r.addEventListener("change", () => { if (r.checked) setPaper(r.value); });
 
@@ -141,13 +149,14 @@ function selectLayout(id, focus) {
     b.tabIndex = on ? 0 : -1;
     if (on && focus) { b.focus(); b.scrollIntoView({ block: "nearest", inline: "nearest", behavior: smooth() }); }
   }
+  showLayoutChosen();
   // the page options under the layouts are those of this layout
   if (typeof showPageOptions === "function" && $("page-opts")) showPageOptions();
 }
 // MasterTest Web, the files, the quiz in the export, and Chinese, Japanese and Korean text. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ files
 
-function filePicker(inputId, dropId, stateId, empty, onFile) {
+function filePicker(inputId, dropId, stateId, empty, onFile, alsoDrop) {
   const input = $(inputId), drop = $(dropId);
   const show = (f) => {
     drop.classList.toggle("chosen", !!f);
@@ -156,14 +165,17 @@ function filePicker(inputId, dropId, stateId, empty, onFile) {
     update();
   };
   input.addEventListener("change", () => show(input.files[0] || null));
-  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("dragging"); });
-  drop.addEventListener("dragleave", () => drop.classList.remove("dragging"));
-  drop.addEventListener("drop", (e) => {
-    e.preventDefault();
-    drop.classList.remove("dragging");
-    const f = e.dataTransfer.files[0];
-    if (f) show(f);
-  });
+  // once read, the file's box folds away and its summary (alsoDrop) takes a new file instead
+  for (const target of [drop, alsoDrop && $(alsoDrop)].filter(Boolean)) {
+    target.addEventListener("dragover", (e) => { e.preventDefault(); target.classList.add("dragging"); });
+    target.addEventListener("dragleave", () => target.classList.remove("dragging"));
+    target.addEventListener("drop", (e) => {
+      e.preventDefault();
+      target.classList.remove("dragging");
+      const f = e.dataTransfer.files[0];
+      if (f) show(f);
+    });
+  }
   return () => { input.value = ""; show(null); };
 }
 
@@ -174,7 +186,8 @@ const clearExport = filePicker("export", "export-drop", "export-state", () => tr
   setMergedAvailable(null);
   showQuiz();
   if (f && ready) inspectExport();
-});
+}, "quiz-summary");
+$("export-replace").addEventListener("click", () => $("export").click());
 
 // ------------------------------------------------------------------ the quiz in the export
 
@@ -355,8 +368,10 @@ const clearClass = filePicker("classlist", "class-drop", "class-state", () => tr
   Object.assign(cls, { state: f ? "reading" : "none", summary: null, message: "" });
   showClass();
   if (f && ready) inspectClass();
-});
+}, "class-box");
 $("class-clear").addEventListener("click", (e) => { e.preventDefault(); clearClass(); });
+$("class-replace").addEventListener("click", () => $("classlist").click());
+$("class-remove").addEventListener("click", () => clearClass());
 // MasterTest Web, the class list. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ the class list
 
@@ -441,9 +456,9 @@ function showClass() {
   if (cls.state === "ready") {
     $("cls-n").textContent = r.students;
     $("cls-unit").textContent = trn(r.students, "student", "students");
-    $("cls-title").textContent = classFile.name;
+    $("cls-title").hidden = true;      // the file's name is in the line above (class-chip)
     $("cls-id").textContent = r.number_column;
-    $("cls-id-how").textContent = cls.id ? tr("(chosen in Class list options)") : tr("(found automatically)");
+    $("cls-id-how").textContent = cls.id ? tr("(chosen in Fine-tuning, Class list and attendance)") : tr("(found automatically)");
     $("cls-qr").textContent = r.qr_fields.map((f) => (f === "Card serial" ? tr("card serial") : f)).join(", ");
     $("cls-cols").textContent = r.columns.join(", ");
     const notes = [];
@@ -990,8 +1005,63 @@ function showPageOptions() {
     box.closest("label").hidden = na;
     box.closest("label").querySelector("[data-desc]").textContent = text;
   }
-  $("pg-layout-note").textContent = tr("{layout}: files and pages", { layout: layoutName(layout) });
+  $("pg-layout-note").textContent = tr("{layout}: printing", { layout: layoutName(layout) });
+  showPrintSimple();
 }
+
+// ------------------------------------------------------------------ printing, in three choices
+// Files (collate the exams and cards, or not), Title page (none, in each booklet, a separate file)
+// and Printing double-sided (every pad) set the page options above; a mixture set under Each
+// setting leaves the choice it breaks unselected.
+const poBox = (po) => document.querySelector(`#page-opts input[data-po="${po}"]`);
+const poShown = (po) => !poBox(po).closest("label").hidden;
+const poUsable = (po) => poShown(po) && !poBox(po).disabled;
+const PADS = ["pad-title-page", "pad-exam", "pad-answer-cards"];
+let duplexWanted = false;     // stays on while titles come and go, so their pads follow
+
+function showPrintSimple() {
+  const kind = layoutKind();
+  const collates = ["collate-exams", "collate-answer-cards"].filter(poUsable);
+  const on = collates.filter((po) => poBox(po).checked).length;
+  $("ps-files-row").hidden = !collates.length;
+  for (const r of document.querySelectorAll('input[name="ps-files"]'))
+    r.checked = r.value === "all" ? collates.length > 0 && on === collates.length : on === 0;
+  const titleShown = poShown("title-page");
+  const sepShown = poShown("collate-title-pages");
+  $("ps-title-row").hidden = !titleShown;
+  $("ps-title-sep").hidden = !sepShown;
+  $("ps-title-start").textContent = tr(kind === "merged" ? "Before each quiz" : "At the start of each booklet");
+  const start = poBox("title-page").checked, sep = sepShown && poBox("collate-title-pages").checked;
+  for (const r of document.querySelectorAll('input[name="ps-title"]'))
+    r.checked = r.value === "none" ? !start && !sep : r.value === "start" ? start && !sep : sep && !start;
+  const pads = PADS.filter(poUsable);
+  $("ps-duplex-row").hidden = !pads.length || kind === "duplex";   // folded booklets: Pad title page is under Each setting
+  $("ps-duplex-always").hidden = kind !== "duplex";
+  const padded = pads.length > 0 && pads.every((po) => poBox(po).checked);
+  $("ps-duplex").checked = padded;
+  $("ps-duplex").indeterminate = !padded && pads.some((po) => poBox(po).checked);
+  duplexWanted = padded;
+  const n = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).length;
+  $("page-details-note").textContent = n ? trn(n, "{n} setting on", "{n} settings on") : tr("the files and pages one by one");
+}
+function setPads(on) {
+  showPageOptions();      // title choices decide whether Pad title page can be used
+  for (const po of PADS) if (poUsable(po)) poBox(po).checked = on;
+}
+for (const r of document.querySelectorAll('input[name="ps-files"]')) r.addEventListener("change", () => {
+  if (!r.checked) return;
+  for (const po of ["collate-exams", "collate-answer-cards"]) if (poUsable(po)) poBox(po).checked = r.value === "all";
+  showPageOptions(); update();
+});
+for (const r of document.querySelectorAll('input[name="ps-title"]')) r.addEventListener("change", () => {
+  if (!r.checked) return;
+  const keep = duplexWanted;
+  poBox("title-page").checked = r.value === "start";
+  if (poShown("collate-title-pages")) poBox("collate-title-pages").checked = r.value === "separate";
+  if (keep) setPads(true);
+  showPageOptions(); update();
+});
+$("ps-duplex").addEventListener("change", () => { setPads($("ps-duplex").checked); showPageOptions(); update(); });
 function pageArgs() {
   const on = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).map((b) => b.dataset.po);
   return on.length ? ["--page-options", on.join(",")] : [];
@@ -1109,6 +1179,16 @@ const mode = () => document.querySelector('input[name="mode"]:checked').value;
 function update() {
   showChanged();
   showRecap();
+  // one thing at a time: students, layout and printing once the quiz has been read (or settings loaded)
+  document.body.classList.toggle("no-quiz", quiz.state !== "ready" && !pending);
+  // a read file folds into its summary, which names it and offers Replace
+  $("export-drop").closest(".files").hidden = quiz.state === "ready";
+  $("export-chip").textContent = $("export-state").textContent;
+  const classRead = !!classFile && cls.state === "ready";
+  $("class-drop").closest(".files").hidden = classRead;
+  $("class-chip").textContent = $("class-state").textContent;
+  $("classlist-details").hidden = !classRead;
+  $("blank-details").hidden = blanks() <= 0;
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
   if (hasClass) $("exams-hint").replaceChildren();
@@ -1153,10 +1233,10 @@ function update() {
 // section is set to, so the sections can stay closed
 const TUNE_GROUPS = {
   text: ["--font", "--option-font", "--font-size", "--margin", "--margin-left", "--margin-right", "--margin-top", "--margin-bottom",
-    "--question-spacing", "--option-spacing", "--option-font-size", "--option-dot", "--option-letters", "--option-columns", "--show-points",
-    "--no-quiz-instructions", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--multiple-answer-instructions"],
-  answer: ["--answer-width", "--cell-shading", "--answer-card-instructions", "--essay-space", "--essay-space-all", "--no-option-pad",
-    "--question-rules"],
+    "--question-spacing", "--option-spacing", "--option-font-size", "--option-dot", "--option-letters", "--option-columns", "--show-points"],
+  instr: ["--no-quiz-instructions", "--calculated-instructions", "--fill-blank-instructions", "--fill-blank-text", "--multiple-answer-instructions",
+    "--answer-card-instructions"],
+  answer: ["--answer-width", "--cell-shading", "--essay-space", "--essay-space-all", "--no-option-pad", "--question-rules"],
   lang: ["--print-language", "--decimal-mark", "--csv-separator"],
   adv: ["--qr-quality", "--seed"],
 };
@@ -1689,11 +1769,6 @@ $("pw-form").addEventListener("submit", (e) => {
 function showStep(n) {
   $("step1").hidden = n !== 1;
   $("step2").hidden = n !== 2;
-  $("step1-tab").toggleAttribute("aria-current", n === 1);
-  if (n === 1) $("step1-tab").setAttribute("aria-current", "step");
-  $("step2-tab").toggleAttribute("aria-current", n === 2);
-  if (n === 2) $("step2-tab").setAttribute("aria-current", "step");
-  $("step1-tab").classList.toggle("done", n === 2);
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
