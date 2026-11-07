@@ -179,7 +179,7 @@ function filePicker(inputId, dropId, stateId, empty, onFile, alsoDrop) {
   return () => { input.value = ""; show(null); };
 }
 
-const clearExport = filePicker("export", "export-drop", "export-state", () => tr("Choose or drop the .zip, .imscc or .docx file"), (f) => {
+const clearExport = filePicker("export", "export-drop", "export-state", () => tr("Click here to load any Canvas, D2L Brightspace or Word document written for Akindi's importer"), (f) => {
   exportFile = f;
   cjkRegion = null;     // a new export: follow its text again
   Object.assign(quiz, { state: f ? "reading" : "none", list: [], number: null, summary: null, message: "" });
@@ -187,7 +187,6 @@ const clearExport = filePicker("export", "export-drop", "export-state", () => tr
   showQuiz();
   if (f && ready) inspectExport();
 }, "quiz-summary");
-$("export-replace").addEventListener("click", () => $("export").click());
 
 // ------------------------------------------------------------------ the quiz in the export
 
@@ -286,7 +285,7 @@ function showQuiz() {
     $("sum-kinds").textContent = Object.entries(s.kinds).map(([k, n]) => tr("{n} " + k, { n })).join(", ");
     const notes = [];
     if (s.pick_rules.length)
-      notes.push(tr("Each exam gets {per} of them: the quiz's item banks pick some of their questions (“pick N”). Alter the question pool to change this.", { per: s.per_exam_with_banks }));
+      notes.push(tr("Each exam gets {per} questions: some are picked from question banks.", { per: s.per_exam_with_banks }));
     if (s.omitted) notes.push(trn(s.omitted, "{n} question was left out because it cannot be printed: {list}", "{n} questions were left out because they cannot be printed: {list}",
       { list: (s.omitted_notes || []).join("; ") }));
     if (!s.merged1_ok) notes.push(tr("At least one question has {n} options, so the Merged One Column and Merged Two Column Layouts are not available. If you want to use them make sure multiple-choice questions have no more than 6 options (4 for Merged Two Column).", { n: s.max_options }));
@@ -370,8 +369,7 @@ const clearClass = filePicker("classlist", "class-drop", "class-state", () => tr
   if (f && ready) inspectClass();
 }, "class-box");
 $("class-clear").addEventListener("click", (e) => { e.preventDefault(); clearClass(); });
-$("class-replace").addEventListener("click", () => $("classlist").click());
-$("class-remove").addEventListener("click", () => clearClass());
+
 // MasterTest Web, the class list. Part of wizard.js: tools/build_web.py joins web/wizard/*.js in order.
 // ------------------------------------------------------------------ the class list
 
@@ -456,7 +454,7 @@ function showClass() {
   if (cls.state === "ready") {
     $("cls-n").textContent = r.students;
     $("cls-unit").textContent = trn(r.students, "student", "students");
-    $("cls-title").hidden = true;      // the file's name is in the line above (class-chip)
+    $("cls-title").hidden = true;      // the file's name is in its box above
     $("cls-id").textContent = r.number_column;
     $("cls-id-how").textContent = cls.id ? tr("(chosen in Fine-tuning, Class list and attendance)") : tr("(found automatically)");
     $("cls-qr").textContent = r.qr_fields.map((f) => (f === "Card serial" ? tr("card serial") : f)).join(", ");
@@ -1005,7 +1003,7 @@ function showPageOptions() {
     box.closest("label").hidden = na;
     box.closest("label").querySelector("[data-desc]").textContent = text;
   }
-  $("pg-layout-note").textContent = tr("{layout}: printing", { layout: layoutName(layout) });
+  $("pg-layout-note").textContent = tr("{layout}: Print Options", { layout: layoutName(layout) });
   showPrintSimple();
 }
 
@@ -1042,7 +1040,11 @@ function showPrintSimple() {
   $("ps-duplex").indeterminate = !padded && pads.some((po) => poBox(po).checked);
   duplexWanted = padded;
   const n = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).length;
-  $("page-details-note").textContent = n ? trn(n, "{n} setting on", "{n} settings on") : tr("the files and pages one by one");
+  $("page-details-note").textContent = [
+    document.querySelector('input[name="ps-files"]:checked')?.value === "all" ? tr("all in one file") : "",
+    $("ps-duplex").checked ? tr("double-sided") : "",
+    n ? trn(n, "{n} setting on", "{n} settings on") : tr("none set"),
+  ].filter(Boolean).join(" · ");
 }
 function setPads(on) {
   showPageOptions();      // title choices decide whether Pad title page can be used
@@ -1181,25 +1183,15 @@ function update() {
   showRecap();
   // one thing at a time: students, layout and printing once the quiz has been read (or settings loaded)
   document.body.classList.toggle("no-quiz", quiz.state !== "ready" && !pending);
-  // a read file folds into its summary, which names it and offers Replace
-  $("export-drop").closest(".files").hidden = quiz.state === "ready";
-  $("export-chip").textContent = $("export-state").textContent;
   const classRead = !!classFile && cls.state === "ready";
-  $("class-drop").closest(".files").hidden = classRead;
-  $("class-chip").textContent = $("class-state").textContent;
   $("classlist-details").hidden = !classRead;
   $("blank-details").hidden = blanks() <= 0;
   const hasClass = !!classFile;
   $("mode").disabled = !hasClass;
-  if (hasClass) $("exams-hint").replaceChildren();
-  else {
-    // a link that opens the file chooser for the class list
-    const load = document.createElement("button");
-    load.type = "button"; load.className = "link"; load.textContent = tr("(Load a class list to use either of the options below)");
-    load.addEventListener("click", () => $("classlist").click());
-    $("exams-hint").replaceChildren(load);
-  }
-  $("exams-hint").hidden = hasClass;
+  // unique exams or variants: a choice only with a class list
+  $("exams-details").hidden = !hasClass;
+  $("exams-note").textContent = mode() === "variants"
+    ? trn(Number($("variants").value) || 2, "{n} variant", "{n} variants") : tr("A unique exam for each student");
   const variantsOn = hasClass && mode() === "variants";
   $("variants").disabled = !variantsOn;
   for (const b of document.querySelectorAll('[data-step="variants"]')) b.disabled = !variantsOn;
