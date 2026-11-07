@@ -361,7 +361,7 @@ function setMergedAvailable(summary) {
   }
   if (layout.unavailable) selectLayout(LAYOUTS[0].id, false);
 }
-const clearClass = filePicker("classlist", "class-drop", "class-state", () => tr("Choose or drop the class list"), (f) => {
+const clearClass = filePicker("classlist", "class-drop", "class-state", () => tr("Click here to choose a class list or drag and drop one."), (f) => {
   classFile = f;
   $("class-clear").hidden = !f;
   Object.assign(cls, { state: f ? "reading" : "none", summary: null, message: "" });

@@ -615,7 +615,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
           <input type="file" id="classlist" accept=".csv,text/csv">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.2 19.5c.6-3.3 3-5.1 5.8-5.1s5.2 1.8 5.8 5.1"/><path d="M15.5 6.2h5.3M15.5 9.4h5.3M17.5 12.6h3.3"/></svg>
           <span class="title">Class list <span class="tag">optional, .csv</span></span>
-          <span class="state" id="class-state">Choose or drop the class list</span>
+          <span class="state" id="class-state">Click here to choose a class list or drag and drop one.</span>
           <button type="button" class="clear" id="class-clear" hidden>Remove class list</button>
         </label>
       </div>
@@ -743,7 +743,6 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
 
     <section class="block after-quiz" aria-labelledby="tune-h">
       <h2 id="tune-h" class="num-h"><span class="num" aria-hidden="true">4</span>Fine-tuning</h2>
-      <p class="hint">Optional. Every setting starts at a sensible default; a section you have changed says so.</p>
       <details class="pool tune" id="print-details">
         <summary>Text and fonts <span class="summary-note">Margins, font, size, spacing, option letters, points</span><span class="changed" data-changed="text" hidden></span></summary>
         <div class="pool-body">
@@ -798,7 +797,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         </div>
       </details>
       <details class="pool tune" id="instr-details">
-        <summary>Instructions <span class="summary-note">The quiz's own instructions, the lines under calculated, fill-in-the-blank and multiple-answer questions, the answer card's instructions</span><span class="changed" data-changed="instr" hidden></span></summary>
+        <summary>Instructions <span class="summary-note">Change instructions printed under specific question types, on the answer card and before the exam</span><span class="changed" data-changed="instr" hidden></span></summary>
         <div class="pool-body">
           <div class="choices tight po-checks">
             <label class="check"><input type="checkbox" id="po-noinstr"><span><span class="label">Suppress quiz instructions</span><span class="sub">Leave out the quiz's own instructions.</span></span></label>
@@ -831,7 +830,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         </div>
       </details>
       <details class="pool tune" id="answer-details">
-        <summary>Answer area <span class="summary-note">Answer width, shading, essay space, bubbles, rules between questions</span><span class="changed" data-changed="answer" hidden></span></summary>
+        <summary>Answer area <span class="summary-note">Answer area width, answer box shading, bubble options, lines between questions.</span><span class="changed" data-changed="answer" hidden></span></summary>
         <div class="pool-body">
           <div class="form-grid">
             <label for="po-width">Answer field width:</label>
@@ -921,7 +920,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
         </div>
       </details>
       <details class="pool tune" id="adv-details">
-        <summary>Advanced <span class="summary-note">QR code quality, seed</span><span class="changed" data-changed="adv" hidden></span></summary>
+        <summary>Advanced <span class="summary-note">QR code quality, select seed number</span><span class="changed" data-changed="adv" hidden></span></summary>
         <div class="pool-body">
           <div class="form-grid">
             <label for="adv-qr">QR code quality:</label>
