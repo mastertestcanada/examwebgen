@@ -707,7 +707,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
       <div class="layouts" id="layouts" role="radiogroup" aria-labelledby="layout-h"></div>
       <p class="layout-chosen" id="layout-chosen" aria-live="polite"></p>
       <details class="pool layout-opts" id="print-details-box">
-        <summary><span id="pg-layout-note"></span> <span class="summary-note" id="page-details-note"></span></summary>
+        <summary><span id="pg-layout-note"></span> <span class="summary-note">Collate exams/cards, Double-sided printing, Title page</span><span class="changed" id="page-details-note" hidden></span></summary>
         <div class="pool-body">
         <div class="print-simple">
           <fieldset class="seg-row" id="ps-files-row">
@@ -845,8 +845,8 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
               <span class="pool-of">This is how much space to allocate on the answer card for an essay's answer when it isn't specified. e.g. Putting “(1/2 page)” in the Canvas question title reserves a half page on the answer card. Tick “For every essay” if you want every essay question to be this long.</span></span>
           </div>
           <div class="choices tight po-checks">
-            <label class="check"><input type="checkbox" id="po-pad" checked><span><span class="label">Same number of bubbles for every question</span><span class="sub">Every multiple-choice question gets as many bubbles as the question with the most options (the default). Untick to print one bubble per option.</span></span></label>
-            <label class="check"><input type="checkbox" id="po-rules"><span><span class="label">Rule between questions</span><span class="sub">A thin grey line between one question and the next, so each question is easy to follow across to its answer. On by default for Merged One Column.</span></span></label>
+            <label class="check"><input type="checkbox" id="po-pad" checked><span><span class="label">Same number of bubbles for every question</span><span class="sub">Each multiple-choice question gets the same number of bubbles.</span></span></label>
+            <label class="check"><input type="checkbox" id="po-rules"><span><span class="label">Rule between questions</span><span class="sub">Places a thin grey line between one question and the next. On merged exams this helps students align the question with the answer area.</span></span></label>
           </div>
         </div>
       </details>
@@ -889,7 +889,7 @@ section.block:has(> .print-opts) + section.block:has(> .print-opts) { border-top
                     </div>
       </details>
       <details class="pool tune" id="lang-details">
-        <summary>Language and numbers <span class="summary-note" id="lang-note"></span><span class="changed" data-changed="lang" hidden></span></summary>
+        <summary>Language Options <span class="summary-note">Print language, decimal point, csv delimiter</span><span class="changed" data-changed="lang" hidden></span></summary>
         <div class="pool-body">
           <div class="form-grid">
             <span class="grid-label" id="plang-h">Printed in:</span>

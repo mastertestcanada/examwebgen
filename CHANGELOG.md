@@ -8,6 +8,7 @@ only when requested. MasterTest Web shares MasterTest Builder's version.
 
 | Version | Date       | Changes |
 |---------|------------|---------|
+| 0.5.44  | 2026-11-08 | MasterTest Web wording: Language Options (Print language, decimal point, csv delimiter), the Rule between questions and Same number of bubbles descriptions, the Print Options summary (what it holds, and how many options are set, as the Fine-tuning sections say). Merged sheets print no line under multiple-answer questions unless --multiple-answer-instructions gives one. |
 | 0.5.43  | 2026-11-08 | Merged quizzes: the title is centred between the top corner squares; on a named first sheet the student's line, the card line and the instructions move up under it (the divider stays where the Marker expects it, so the instructions get the room). |
 | 0.5.42  | 2026-11-08 | Merged quizzes: the title is on the line of the top corner squares, centred between the left square and the QR code, as on the answer cards (it was under them). Nothing the Marker reads moves. |
 | 0.5.41  | 2026-11-07 | MasterTest Web wording: the class list box (“Click here to choose a class list or drag and drop one.”), the Instructions, Answer area and Advanced summaries; Fine-tuning's description removed. |

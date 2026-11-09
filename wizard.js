@@ -1040,11 +1040,9 @@ function showPrintSimple() {
   $("ps-duplex").indeterminate = !padded && pads.some((po) => poBox(po).checked);
   duplexWanted = padded;
   const n = [...document.querySelectorAll("#page-opts input")].filter((b) => b.checked && !b.disabled).length;
-  $("page-details-note").textContent = [
-    document.querySelector('input[name="ps-files"]:checked')?.value === "all" ? tr("all in one file") : "",
-    $("ps-duplex").checked ? tr("double-sided") : "",
-    n ? trn(n, "{n} setting on", "{n} settings on") : tr("none set"),
-  ].filter(Boolean).join(" · ");
+  // like the Fine-tuning sections: how many are set, only when some are
+  $("page-details-note").hidden = !n;
+  $("page-details-note").textContent = trn(n, "{n} option set", "{n} options set");
 }
 function setPads(on) {
   showPageOptions();      // title choices decide whether Pad title page can be used
@@ -1091,7 +1089,7 @@ function showPrintDefaults() {
   $("po-font-size-hint").textContent = tr(merged ? "points (default 9 on merged sheets)" : "points (default 11)");
   $("po-calc").placeholder = merged ? tr("(none on merged sheets: the header says how to answer)") : standardText("calc");
   $("po-fill").placeholder = merged ? tr("(none on merged sheets: the header says how to answer)") : standardText("fill");
-  $("po-multi").placeholder = standardText("multi");
+  $("po-multi").placeholder = merged ? tr("(none on merged sheets)") : standardText("multi");
   const iso = paper === "iso";
   const w = layout.id === "merged1" ? "180pt" : layout.id === "merged2" ? "90pt" : iso ? "91pt" : "95pt";
   $("po-width").placeholder = w;
@@ -1099,9 +1097,6 @@ function showPrintDefaults() {
   $("po-width-hint").textContent = tr("width of the written-answer boxes; bubbles and number cells scale with it (default {w} for this layout; {range})",
     { w, range: layout.id === "merged1" ? "60–255pt" : layout.id === "merged2" ? `60–${iso ? 139 : 148}pt` : tr("50pt up") });
   showPageOptions();
-  $("po-pad").closest("label").querySelector(".sub").textContent = quiz.summary && quiz.summary.max_options
-    ? tr("Every multiple-choice question gets as many bubbles as the quiz's question with the most options ({n} for this quiz), so every row looks the same (the default). Untick to print one bubble per option.", { n: quiz.summary.max_options })
-    : tr("Every multiple-choice question gets as many bubbles as the quiz's question with the most options, so every row looks the same (the default). Untick to print one bubble per option.");
 }
 
 for (const el of document.querySelectorAll(".tune input, .tune select")) {
@@ -1239,11 +1234,6 @@ function showChanged() {
     el.hidden = !n;
     el.textContent = trn(n, "{n} setting changed", "{n} settings changed");
   }
-  $("lang-note").textContent = [
-    printLang === "fr" ? tr("Printed in French") : tr("Printed in English"),
-    decimalMark() === "comma" ? tr("decimal comma") : tr("decimal point"),
-    csvSeparator() === "semicolon" ? tr("answer_key.csv with semicolons") : tr("answer_key.csv with commas"),
-  ].join(" · ");
 }
 
 // what Create Exam Packet will make, in two lines above it
